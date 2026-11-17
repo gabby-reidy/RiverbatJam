@@ -16,6 +16,16 @@ public class GameBall : MonoBehaviour
     [SerializeField] private float leftGoalX = -9f;
     [SerializeField] private float rightGoalX = 9f;
 
+    [Header("Damage")]
+    [SerializeField, Min(1)] private int baseDamage = 10;
+    [SerializeField, Min(0)] private int damagePerReflection = 5;
+
+    [SerializeField] private int currentDamage;
+    [SerializeField] private int reflectionCount;
+
+    public int CurrentDamage => currentDamage;
+    public int ReflectionCount => reflectionCount;
+
     private Rigidbody2D rb;
     private Vector2 spawnPosition;
     private Vector2 moveDirection;
@@ -44,6 +54,9 @@ public class GameBall : MonoBehaviour
         if (rb.position.x < leftGoalX ||
             rb.position.x > rightGoalX)
         {
+            string missedSide = rb.position.x < leftGoalX ? "Player" : "Enemy";
+            Debug.Log($"{missedSide} missed! Pending damage: {currentDamage}.", this);
+
             ResetBall();
             return;
         }
@@ -92,6 +105,12 @@ public class GameBall : MonoBehaviour
 
     private void BounceOffPaddle(Collider2D paddle, float horizontalDirection)
     {
+        // Ignore another contact while already travelling away from this paddle.
+        if (moveDirection.x * horizontalDirection >= 0f)
+        {
+            return;
+        }
+
         float halfHeight = Mathf.Max(paddle.bounds.extents.y, 0.01f);
 
         float hitOffset =
@@ -105,10 +124,22 @@ public class GameBall : MonoBehaviour
             Mathf.Cos(angle) * horizontalDirection,
             Mathf.Sin(angle)
         );
+
+        IncreaseDamage();
+    }
+
+    private void IncreaseDamage()
+    {
+        reflectionCount++;
+        currentDamage += damagePerReflection;
+
+        Debug.Log($"Reflection {reflectionCount}: ball damage is now {currentDamage}.", this);
     }
 
     public void ResetBall()
     {
+        currentDamage = baseDamage;
+        reflectionCount = 0;
         rb.linearVelocity = Vector2.zero;
         rb.angularVelocity = 0f;
         rb.position = spawnPosition;
