@@ -68,7 +68,6 @@ public class SettingsManager : MonoBehaviour
 
     public void ApplyAudioSettings()
     {
-        // Audio listeners subscribe here and read the current values when they initialize.
         AudioSettingsChanged?.Invoke();
     }
 
