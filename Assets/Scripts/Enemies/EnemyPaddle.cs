@@ -14,6 +14,13 @@ public class EnemyPaddle : MonoBehaviour
     [Header("Tracking")]
     [SerializeField, Min(0f)] private float trackingDeadZone = 0.1f;
 
+    [Header("Runtime Health")]
+    [SerializeField] private int currentHealth;
+
+    public int MaxHealth => opponentData != null ? opponentData.MaxHealth : 0;
+    public int CurrentHealth => currentHealth;
+    public bool IsDefeated => currentHealth <= 0;
+
     private Rigidbody2D rb;
     private float fixedX;
 
@@ -21,6 +28,7 @@ public class EnemyPaddle : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         fixedX = rb.position.x;
+        currentHealth = MaxHealth;
 
         rb.bodyType = RigidbodyType2D.Kinematic;
         rb.interpolation = RigidbodyInterpolation2D.Interpolate;
@@ -64,6 +72,17 @@ public class EnemyPaddle : MonoBehaviour
         nextY = Mathf.Clamp(nextY, minY, maxY);
 
         rb.MovePosition(new Vector2(fixedX, nextY));
+    }
+
+    public void TakeDamage(int damage)
+    {
+        if (damage <= 0 || IsDefeated)
+        {
+            return;
+        }
+
+        currentHealth = Mathf.Max(0, currentHealth - damage);
+        Debug.Log($"{name} took {damage} damage. Health: {currentHealth}/{MaxHealth}.", this);
     }
 
     private void OnValidate()

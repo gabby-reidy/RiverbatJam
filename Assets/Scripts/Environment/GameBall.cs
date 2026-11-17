@@ -26,6 +26,10 @@ public class GameBall : MonoBehaviour
     public int CurrentDamage => currentDamage;
     public int ReflectionCount => reflectionCount;
 
+    public bool IsBattleOver { get; private set; }
+
+    private PlayerPaddle playerHealth;
+    private EnemyPaddle enemyHealth;
     private Rigidbody2D rb;
     private Vector2 spawnPosition;
     private Vector2 moveDirection;
@@ -46,18 +50,48 @@ public class GameBall : MonoBehaviour
 
     private void Start()
     {
+        playerHealth = playerPaddle != null ? playerPaddle.GetComponentInParent<PlayerPaddle>() : null;
+        enemyHealth = enemyPaddle != null ? enemyPaddle.GetComponentInParent<EnemyPaddle>() : null;
+
+        if (playerHealth == null || enemyHealth == null || enemyHealth.MaxHealth <= 0)
+        {
+            Debug.LogError("Assign both paddle colliders, their paddle scripts, and the enemy Opponent Data before starting the battle.", this);
+            StopBattle();
+            return;
+        }
+
         ResetBall();
     }
 
     private void FixedUpdate()
     {
+        if (IsBattleOver)
+        {
+            return;
+        }
+
         if (rb.position.x < leftGoalX ||
             rb.position.x > rightGoalX)
         {
-            string missedSide = rb.position.x < leftGoalX ? "Player" : "Enemy";
-            Debug.Log($"{missedSide} missed! Pending damage: {currentDamage}.", this);
+            // Apply this rally's damage before ResetBall clears it.
+            if (rb.position.x < leftGoalX)
+            {
+                playerHealth.TakeDamage(currentDamage);
+            }
+            else
+            {
+                enemyHealth.TakeDamage(currentDamage);
+            }
 
-            ResetBall();
+            if (playerHealth.IsDefeated || enemyHealth.IsDefeated)
+            {
+                Debug.Log(playerHealth.IsDefeated ? "Player defeated. Enemy wins!" : "Enemy defeated. Player wins!", this);
+                StopBattle();
+            }
+            else
+            {
+                ResetBall();
+            }
             return;
         }
 
@@ -73,7 +107,7 @@ public class GameBall : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (serveTimer > 0f)
+        if (IsBattleOver || serveTimer > 0f)
         {
             return;
         }
@@ -136,8 +170,22 @@ public class GameBall : MonoBehaviour
         Debug.Log($"Reflection {reflectionCount}: ball damage is now {currentDamage}.", this);
     }
 
+    private void StopBattle()
+    {
+        IsBattleOver = true;
+        moveDirection = Vector2.zero;
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
+        rb.simulated = false;
+    }
+
     public void ResetBall()
     {
+        if (IsBattleOver)
+        {
+            return;
+        }
+
         currentDamage = baseDamage;
         reflectionCount = 0;
         rb.linearVelocity = Vector2.zero;

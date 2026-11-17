@@ -12,12 +12,21 @@ public class PlayerPaddle : MonoBehaviour
     [SerializeField] private float minY = -3.5f;
     [SerializeField] private float maxY = 3.5f;
 
+    [Header("Health")]
+    [SerializeField, Min(1)] private int maxHealth = 100;
+    [SerializeField] private int currentHealth;
+
+    public int MaxHealth => Mathf.Max(1, maxHealth);
+    public int CurrentHealth => currentHealth;
+    public bool IsDefeated => currentHealth <= 0;
+
     private Rigidbody2D rb;
     private Vector2 moveInput;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        currentHealth = MaxHealth;
 
         rb.bodyType = RigidbodyType2D.Kinematic;
         rb.interpolation = RigidbodyInterpolation2D.Interpolate;
@@ -70,6 +79,17 @@ public class PlayerPaddle : MonoBehaviour
         nextPosition.y = Mathf.Clamp(nextPosition.y, minY, maxY);
 
         rb.MovePosition(nextPosition);
+    }
+
+    public void TakeDamage(int damage)
+    {
+        if (damage <= 0 || IsDefeated)
+        {
+            return;
+        }
+
+        currentHealth = Mathf.Max(0, currentHealth - damage);
+        Debug.Log($"{name} took {damage} damage. Health: {currentHealth}/{MaxHealth}.", this);
     }
 
     private void OnDisable()
