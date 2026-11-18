@@ -19,6 +19,8 @@ public class PlayerPaddle : MonoBehaviour
     public int MaxHealth => Mathf.Max(1, maxHealth);
     public int CurrentHealth => currentHealth;
     public bool IsDefeated => currentHealth <= 0;
+    public float VerticalMoveSpeed { get; private set; }
+    public float HorizontalMoveSpeed { get; private set; }
 
     private Rigidbody2D rb;
     private Vector2 moveInput;
@@ -78,6 +80,8 @@ public class PlayerPaddle : MonoBehaviour
         nextPosition.x = Mathf.Clamp(nextPosition.x, minX, maxX);
         nextPosition.y = Mathf.Clamp(nextPosition.y, minY, maxY);
 
+        VerticalMoveSpeed = (nextPosition.y - rb.position.y) / Time.fixedDeltaTime;
+        HorizontalMoveSpeed = (nextPosition.x - rb.position.x) / Time.fixedDeltaTime;
         rb.MovePosition(nextPosition);
     }
 
@@ -95,6 +99,8 @@ public class PlayerPaddle : MonoBehaviour
     private void OnDisable()
     {
         moveInput = Vector2.zero;
+        VerticalMoveSpeed = 0f;
+        HorizontalMoveSpeed = 0f;
     }
 
     private void OnValidate()
