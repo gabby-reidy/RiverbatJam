@@ -29,6 +29,14 @@ public class PowerUpManager : MonoBehaviour
 
     [SerializeField] private PowerUpType playerInventory;
     [SerializeField] private PowerUpType enemyInventory;
+    [Header("Power-up Artwork")]
+    [SerializeField] private Sprite fireSprite;
+    [SerializeField] private Sprite iceSprite;
+    [SerializeField] private Sprite earthSprite;
+    [SerializeField] private Sprite windSprite;
+    private Sprite[] placeholderSprites;
+    private Vector2[] placeholderSizes;
+    private SpriteDrawMode[] placeholderDrawModes;
     private PowerUpType[] fieldTypes;
     private SpriteRenderer[] pickupRenderers;
     private float spawnTimer;
@@ -45,6 +53,9 @@ public class PowerUpManager : MonoBehaviour
 
         fieldTypes = new PowerUpType[pickupSpots.Length];
         pickupRenderers = new SpriteRenderer[pickupSpots.Length];
+        placeholderSprites = new Sprite[pickupSpots.Length];
+        placeholderSizes = new Vector2[pickupSpots.Length];
+        placeholderDrawModes = new SpriteDrawMode[pickupSpots.Length];
         for (int i = 0; i < pickupSpots.Length; i++)
         {
             if (pickupSpots[i] == null || (pickupRenderers[i] = pickupSpots[i].GetComponent<SpriteRenderer>()) == null)
@@ -53,6 +64,12 @@ public class PowerUpManager : MonoBehaviour
                 enabled = false;
                 return;
             }
+        }
+        for (int i = 0; i < pickupSpots.Length; i++)
+        {
+            placeholderSprites[i] = pickupRenderers[i].sprite;
+            placeholderSizes[i] = pickupRenderers[i].size;
+            placeholderDrawModes[i] = pickupRenderers[i].drawMode;
         }
         playerInventory = PowerUpType.None;
         enemyInventory = PowerUpType.None;
@@ -246,7 +263,7 @@ public class PowerUpManager : MonoBehaviour
         if (chosen < 0) return;
 
         fieldTypes[chosen] = (PowerUpType)Random.Range(1, 5);
-        pickupRenderers[chosen].color = GetColor(fieldTypes[chosen]);
+        SetPickupArtwork(chosen);
         pickupRenderers[chosen].enabled = true;
         pickupSpots[chosen].enabled = true;
     }
@@ -293,8 +310,44 @@ public class PowerUpManager : MonoBehaviour
 
     private void RefreshInventory()
     {
-        playerSlot.color = GetColor(playerInventory);
-        enemySlot.color = GetColor(enemyInventory);
+        SetSlotArtwork(playerSlot, playerInventory);
+        SetSlotArtwork(enemySlot, enemyInventory);
+    }
+
+    private Sprite GetSprite(PowerUpType type)
+    {
+        switch (type)
+        {
+            case PowerUpType.Fire: return fireSprite;
+            case PowerUpType.Ice: return iceSprite;
+            case PowerUpType.Earth: return earthSprite;
+            case PowerUpType.Wind: return windSprite;
+            default: return null;
+        }
+    }
+
+    private void SetSlotArtwork(Image slot, PowerUpType type)
+    {
+        Sprite sprite = GetSprite(type);
+        slot.sprite = sprite;
+        slot.preserveAspect = true;
+        slot.color = sprite != null ? Color.white : GetColor(type);
+    }
+
+    private void SetPickupArtwork(int index)
+    {
+        Sprite sprite = GetSprite(fieldTypes[index]);
+        SpriteRenderer renderer = pickupRenderers[index];
+        renderer.sprite = sprite != null ? sprite : placeholderSprites[index];
+        renderer.color = sprite != null ? Color.white : GetColor(fieldTypes[index]);
+        if (sprite == null)
+        {
+            renderer.drawMode = placeholderDrawModes[index];
+            renderer.size = placeholderSizes[index];
+            return;
+        }
+        // Spellbooks import at one unit tall; use the existing pickup transform scale.
+        renderer.drawMode = SpriteDrawMode.Simple;
     }
 
     private Color GetColor(PowerUpType type)
