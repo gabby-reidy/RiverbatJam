@@ -16,11 +16,22 @@ public class PlayerPaddle : MonoBehaviour
     [SerializeField, Min(1)] private int maxHealth = 100;
     [SerializeField] private int currentHealth;
 
+    [Header("Lives")]
+    [SerializeField, Min(1)] private int startingLives = 3;
+    [SerializeField] private int currentLives;
+
     public int MaxHealth => Mathf.Max(1, maxHealth);
     public int CurrentHealth => currentHealth;
-    public bool IsDefeated => currentHealth <= 0;
+    public int CurrentLives => currentLives;
+    public bool IsDefeated => currentLives <= 0;
     public float VerticalMoveSpeed { get; private set; }
     public float HorizontalMoveSpeed { get; private set; }
+
+    [Header("Fire Dash")]
+    [SerializeField, Min(0f)] private float dashSpeedBoost = 12f;
+    [SerializeField, Min(0.01f)] private float dashDuration = 0.15f;
+    private Vector2 dashDirection;
+    private float dashTimer;
 
     private Rigidbody2D rb;
     private Vector2 moveInput;
@@ -29,6 +40,7 @@ public class PlayerPaddle : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         currentHealth = MaxHealth;
+        currentLives = Mathf.Max(1, startingLives);
 
         rb.bodyType = RigidbodyType2D.Kinematic;
         rb.interpolation = RigidbodyInterpolation2D.Interpolate;
@@ -75,7 +87,7 @@ public class PlayerPaddle : MonoBehaviour
     private void FixedUpdate()
     {
         Vector2 nextPosition = rb.position +
-            moveInput * moveSpeed * Time.fixedDeltaTime;
+            moveInput * moveSpeed * Time.fixedDeltaTime + GetDashStep();
 
         nextPosition.x = Mathf.Clamp(nextPosition.x, minX, maxX);
         nextPosition.y = Mathf.Clamp(nextPosition.y, minY, maxY);
@@ -83,6 +95,43 @@ public class PlayerPaddle : MonoBehaviour
         VerticalMoveSpeed = (nextPosition.y - rb.position.y) / Time.fixedDeltaTime;
         HorizontalMoveSpeed = (nextPosition.x - rb.position.x) / Time.fixedDeltaTime;
         rb.MovePosition(nextPosition);
+    }
+
+    public bool TryDash()
+    {
+        if (!isActiveAndEnabled || IsDefeated || dashTimer > 0f || dashSpeedBoost <= 0f) return false;
+        Vector2 direction = moveInput;
+        if (direction.sqrMagnitude < 0.001f) return false;
+        direction.Normalize();
+        Vector2 destination = rb.position + direction * dashSpeedBoost * Time.fixedDeltaTime;
+        destination.x = Mathf.Clamp(destination.x, minX, maxX);
+        destination.y = Mathf.Clamp(destination.y, minY, maxY);
+        if ((destination - rb.position).sqrMagnitude < 0.000001f) return false;
+
+        dashDirection = direction;
+        dashTimer = Mathf.Max(0.01f, dashDuration);
+        return true;
+    }
+
+    public void CancelDash()
+    {
+        dashTimer = 0f;
+        dashDirection = Vector2.zero;
+    }
+
+    private Vector2 GetDashStep()
+    {
+        float step = Mathf.Min(dashTimer, Time.fixedDeltaTime);
+        dashTimer = Mathf.Max(0f, dashTimer - Time.fixedDeltaTime);
+        return dashDirection * dashSpeedBoost * step;
+    }
+
+    public void RestoreHealth()
+    {
+        if (!IsDefeated)
+        {
+            currentHealth = MaxHealth;
+        }
     }
 
     public void TakeDamage(int damage)
@@ -93,11 +142,22 @@ public class PlayerPaddle : MonoBehaviour
         }
 
         currentHealth = Mathf.Max(0, currentHealth - damage);
-        Debug.Log($"{name} took {damage} damage. Health: {currentHealth}/{MaxHealth}.", this);
+        if (currentHealth == 0)
+        {
+            // Excess damage cannot take more than one life in a single hit.
+            currentLives--;
+            if (!IsDefeated)
+            {
+                currentHealth = MaxHealth;
+            }
+        }
+
+        Debug.Log($"{name} took {damage} damage. Health: {currentHealth}/{MaxHealth}. Lives: {currentLives}.", this);
     }
 
     private void OnDisable()
     {
+        CancelDash();
         moveInput = Vector2.zero;
         VerticalMoveSpeed = 0f;
         HorizontalMoveSpeed = 0f;

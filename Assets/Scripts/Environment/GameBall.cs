@@ -32,6 +32,7 @@ public class GameBall : MonoBehaviour
     [SerializeField, Min(0.1f)] private float paddleSpeedForMaxLaunchAngle = 6f;
 
     public bool IsCaught => heldPaddle != null;
+    public bool IsCaughtByPlayer => IsCaught && heldPaddle == playerPaddle;
 
     private Collider2D heldPaddle;
     private float heldDirection;
@@ -55,6 +56,28 @@ public class GameBall : MonoBehaviour
     public int ReflectionCount => reflectionCount;
 
     public bool IsBattleOver { get; private set; }
+
+    public float FreezeTimeRemaining => freezeTimer;
+    public float MaxBounceAngle => maxBounceAngle;
+    public BoxCollider2D EnemyBackCollider => enemyBackCollider;
+    public PowerUpManager PowerUps => powerUps;
+    public bool IsFrozen => freezeTimer > 0f;
+    public bool IsInPlay => !IsBattleOver && !IsCaught && !IsFrozen && serveTimer <= 0f;
+    public Vector2 TravelVelocity => moveDirection * currentSpeed;
+    private float freezeTimer;
+    private float windTimer;
+    private float windAcceleration;
+    private RigidbodyConstraints2D constraintsBeforeFreeze;
+
+    // -1 is a neutral serve, 0 is the player, 1 is the enemy.
+    public int LastHitSide { get; private set; } = -1;
+    public event System.Action LifeLost;
+    [SerializeField] private PowerUpManager powerUps;
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (powerUps != null) powerUps.Collect(other);
+    }
 
     private PlayerPaddle playerHealth;
     private EnemyPaddle enemyHealth;
@@ -156,9 +179,20 @@ public class GameBall : MonoBehaviour
             return;
         }
 
+        if (IsFrozen)
+        {
+            freezeTimer = Mathf.Max(0f, freezeTimer - Time.fixedDeltaTime);
+            rb.linearVelocity = Vector2.zero;
+            if (IsFrozen) return;
+            rb.constraints = constraintsBeforeFreeze;
+        }
+
         if (rb.position.x < leftGoalX ||
             rb.position.x > rightGoalX)
         {
+            int playerLivesBefore = playerHealth.CurrentLives;
+            int enemyLivesBefore = enemyHealth.CurrentLives;
+
             // Apply this rally's damage before ResetBall clears it.
             if (rb.position.x < leftGoalX)
             {
@@ -167,6 +201,13 @@ public class GameBall : MonoBehaviour
             else
             {
                 enemyHealth.TakeDamage(currentDamage);
+            }
+
+            if (playerHealth.CurrentLives < playerLivesBefore || enemyHealth.CurrentLives < enemyLivesBefore)
+            {
+                playerHealth.RestoreHealth();
+                enemyHealth.RestoreHealth();
+                LifeLost?.Invoke();
             }
 
             if (playerHealth.IsDefeated || enemyHealth.IsDefeated)
@@ -188,6 +229,7 @@ public class GameBall : MonoBehaviour
             return;
         }
 
+        ApplyWind();
         rb.linearVelocity = moveDirection * currentSpeed;
     }
 
@@ -211,6 +253,8 @@ public class GameBall : MonoBehaviour
             return;
         }
 
+        if (IsFrozen) return;
+
         if (hitCollider == playerPaddle)
         {
             BounceOffPaddle(playerPaddle, 1f);
@@ -221,14 +265,8 @@ public class GameBall : MonoBehaviour
         }
         else
         {
-            Vector2 normal = collision.GetContact(0).normal;
-
-            // Only reflect if we are moving into the surface.
-            if (Vector2.Dot(moveDirection, normal) < 0f)
+            if (ReflectOffSurface(collision))
             {
-                moveDirection =
-                    Vector2.Reflect(moveDirection, normal).normalized;
-
                 // Barriers absorb damage, but only paddles increase it.
                 BarrierHealth barrier = hitCollider.GetComponentInParent<BarrierHealth>();
                 if (barrier != null)
@@ -241,8 +279,99 @@ public class GameBall : MonoBehaviour
         rb.linearVelocity = moveDirection * currentSpeed;
     }
 
+    private void OnCollisionStay2D(Collision2D collision)
+    {
+        if (IsBattleOver || IsCaught || serveTimer > 0f)
+        {
+            return;
+        }
+
+        Collider2D hitCollider = collision.collider;
+        if (IsFrozen)
+        {
+            // Catching must also work when the back contact began before Ice.
+            if (hitCollider == playerBackCollider) CatchBall(playerPaddle, 1f);
+            else if (hitCollider == enemyBackCollider) CatchBall(enemyPaddle, -1f);
+            return;
+        }
+        if (hitCollider == playerPaddle || hitCollider == enemyPaddle
+            || hitCollider == playerBackCollider || hitCollider == enemyBackCollider)
+        {
+            return;
+        }
+
+        // A paddle can redirect us into a wall whose contact never ended.
+        // Correct direction without replaying damage, momentum, or catching.
+        if (ReflectOffSurface(collision))
+        {
+            rb.linearVelocity = moveDirection * currentSpeed;
+        }
+    }
+
+    private bool ReflectOffSurface(Collision2D collision)
+    {
+        bool reflected = false;
+        for (int i = 0; i < collision.contactCount; i++)
+        {
+            Vector2 normal = collision.GetContact(i).normal;
+            if (Vector2.Dot(moveDirection, normal) < -0.001f)
+            {
+                moveDirection = Vector2.Reflect(moveDirection, normal).normalized;
+                reflected = true;
+            }
+        }
+        return reflected;
+    }
+
+    public bool TryFreeze(float duration)
+    {
+        if (!IsInPlay || duration <= 0f || rb.position.x < leftGoalX || rb.position.x > rightGoalX)
+            return false;
+
+        // Keep the saved travel direction and speed; keep collisions enabled for catches.
+        constraintsBeforeFreeze = rb.constraints;
+        freezeTimer = duration;
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
+        rb.constraints = RigidbodyConstraints2D.FreezeAll;
+        return true;
+    }
+
+    private void EndFreeze()
+    {
+        if (IsFrozen) rb.constraints = constraintsBeforeFreeze;
+        freezeTimer = 0f;
+    }
+
+    public bool TryWind(float verticalImpulse, float duration)
+    {
+        if (!IsInPlay || verticalImpulse <= 0f || duration <= 0f || windTimer > 0f) return false;
+        float verticalSpeed = TravelVelocity.y;
+        if (Mathf.Abs(verticalSpeed) < 0.001f) return false;
+
+        // Lock the force direction at activation so it keeps blowing past zero velocity.
+        windAcceleration = -Mathf.Sign(verticalSpeed) * verticalImpulse / duration;
+        windTimer = duration;
+        return true;
+    }
+
+    private void ApplyWind()
+    {
+        if (windTimer <= 0f) return;
+        float step = Mathf.Min(windTimer, Time.fixedDeltaTime);
+        windTimer = Mathf.Max(0f, windTimer - step);
+        Vector2 velocity = TravelVelocity;
+        velocity.y += windAcceleration * step;
+        if (velocity.sqrMagnitude < 0.000001f) return;
+        currentSpeed = ClampBallSpeed(velocity.magnitude);
+        moveDirection = velocity.normalized;
+    }
+
     private void CatchBall(Collider2D paddle, float horizontalDirection)
     {
+        EndFreeze();
+        windTimer = 0f;
+        windAcceleration = 0f;
         heldPaddle = paddle;
         heldDirection = horizontalDirection;
         currentDamage = baseDamage;
@@ -271,6 +400,7 @@ public class GameBall : MonoBehaviour
     private void LaunchCaughtBall()
     {
         PositionHeldBall();
+        LastHitSide = heldPaddle == playerPaddle ? 0 : 1;
         // Paddle FixedUpdates run first, so this includes this step's input and limits.
         float verticalSpeed = heldPaddle == playerPaddle
             ? playerHealth.VerticalMoveSpeed
@@ -282,6 +412,14 @@ public class GameBall : MonoBehaviour
         );
         float angle = movementInfluence * Mathf.Clamp(maxLaunchAngle, 0f, 70f) * Mathf.Deg2Rad;
         moveDirection = new Vector2(Mathf.Cos(angle) * heldDirection, Mathf.Sin(angle));
+
+        float horizontalSpeed = heldPaddle == playerPaddle
+            ? playerHealth.HorizontalMoveSpeed
+            : enemyHealth.HorizontalMoveSpeed;
+        // Forward is +X for the player and -X for the enemy.
+        float speedChange = horizontalSpeed * heldDirection * Mathf.Max(0f, horizontalSpeedInfluence);
+        currentSpeed = ClampBallSpeed(ClampBallSpeed(moveSpeed) + speedChange);
+
         heldPaddle = null;
         launchRequested = false;
         rb.simulated = true;
@@ -290,8 +428,14 @@ public class GameBall : MonoBehaviour
 
     private void BounceOffPaddle(Collider2D paddle, float horizontalDirection)
     {
-        // Ignore another contact while already travelling away from this paddle.
-        if (moveDirection.x * horizontalDirection >= 0f)
+        float paddleHorizontalSpeed = paddle == playerPaddle
+            ? playerHealth.HorizontalMoveSpeed
+            : enemyHealth.HorizontalMoveSpeed;
+        // An outgoing ball can be hit again only when the paddle catches up from behind.
+        bool outgoing = moveDirection.x * horizontalDirection >= 0f;
+        float closingSpeed = (paddleHorizontalSpeed - moveDirection.x * currentSpeed) * horizontalDirection;
+        bool inFront = (rb.position.x - paddle.bounds.center.x) * horizontalDirection > 0f;
+        if (outgoing && (closingSpeed <= 0.1f || !inFront))
         {
             return;
         }
@@ -305,9 +449,6 @@ public class GameBall : MonoBehaviour
 
         float angle = hitOffset * maxBounceAngle * Mathf.Deg2Rad;
 
-        float paddleHorizontalSpeed = paddle == playerPaddle
-            ? playerHealth.HorizontalMoveSpeed
-            : enemyHealth.HorizontalMoveSpeed;
         // Positive toward the opponent on either side; negative when retreating.
         float speedChange = paddleHorizontalSpeed * horizontalDirection * Mathf.Max(0f, horizontalSpeedInfluence);
         if (Mathf.Abs(paddleHorizontalSpeed) <= 0.01f)
@@ -328,6 +469,7 @@ public class GameBall : MonoBehaviour
             Mathf.Sin(angle)
         );
 
+        LastHitSide = paddle == playerPaddle ? 0 : 1;
         IncreaseDamage();
     }
 
@@ -353,6 +495,9 @@ public class GameBall : MonoBehaviour
 
     private void StopBattle()
     {
+        EndFreeze();
+        windTimer = 0f;
+        windAcceleration = 0f;
         IsBattleOver = true;
         heldPaddle = null;
         launchRequested = false;
@@ -369,6 +514,9 @@ public class GameBall : MonoBehaviour
             return;
         }
 
+        EndFreeze();
+        windTimer = 0f;
+        windAcceleration = 0f;
         heldPaddle = null;
         launchRequested = false;
         rb.simulated = true;
@@ -378,6 +526,7 @@ public class GameBall : MonoBehaviour
         rb.linearVelocity = Vector2.zero;
         rb.angularVelocity = 0f;
         rb.position = spawnPosition;
+        LastHitSide = -1;
 
         float horizontalDirection = Random.value < 0.5f ? -1f : 1f;
         float verticalDirection = Random.Range(-0.5f, 0.5f);

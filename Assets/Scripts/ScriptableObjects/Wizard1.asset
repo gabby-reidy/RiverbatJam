@@ -17,6 +17,22 @@ MonoBehaviour:
   battleSprite: {fileID: 0}
   maxHealth: 100
   paddleMoveSpeed: 5
+  reactionInterval: 0.2
+  predictionError: 0.25
+  aggression: 0.65
+  preferredX: 6.5
+  retreatSpeedThreshold: 12
+  retreatDamageThreshold: 30
+  followUpSpeedThreshold: 4
+  followUpMaxDistance: 3
+  seekPowerUps: 1
+  preferredPowerUp: 1
+  replaceHeldPowerUp: 0
+  fireUsage: 1
+  aimAwayFromPlayer: 0
+  targetWeakBarriers: 0
+  attemptCatches: 0
+  pressureFrozenBall: 0
   castSound: {fileID: 0}
   reflectSound: {fileID: 0}
   hurtSound: {fileID: 0}

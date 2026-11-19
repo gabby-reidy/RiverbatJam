@@ -15,6 +15,14 @@ public class BarrierHealth : MonoBehaviour
         currentHealth = MaxHealth;
     }
 
+    public bool Restore()
+    {
+        bool neededRepair = currentHealth < MaxHealth || !gameObject.activeSelf;
+        currentHealth = MaxHealth;
+        gameObject.SetActive(true);
+        return neededRepair;
+    }
+
     public void TakeDamage(int damage)
     {
         if (damage <= 0 || IsBroken)
