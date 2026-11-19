@@ -214,6 +214,13 @@ public class GameBall : MonoBehaviour
             {
                 Debug.Log(playerHealth.IsDefeated ? "Player defeated. Enemy wins!" : "Enemy defeated. Player wins!", this);
                 StopBattle();
+                if (enemyHealth.IsDefeated && !playerHealth.IsDefeated)
+                {
+                    if (SceneLoader.Instance != null)
+                        SceneLoader.Instance.ReturnAfterVictory(gameObject.scene.name);
+                    else if (Application.CanStreamedLevelBeLoaded("Cutscene"))
+                        UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("Cutscene");
+                }
             }
             else
             {

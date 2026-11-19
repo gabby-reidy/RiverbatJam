@@ -934,7 +934,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SceneLoader
   mainMenuScene: MainMenu
-  startingScene: SampleScene
+  startingScene: LoadScreen
+  firstGameScene: Cutscene
+  preloadScenes:
+  - Cutscene
+  - FightScreen
 --- !u!4 &582338116
 Transform:
   m_ObjectHideFlags: 0
