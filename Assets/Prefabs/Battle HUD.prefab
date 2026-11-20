@@ -333,7 +333,7 @@ MonoBehaviour:
   fireSprite: {fileID: -4782061814216523988, guid: d11c90015bdee624785355ba361c95ca, type: 3}
   iceSprite: {fileID: 5981777279578741203, guid: eed8ca8958b8d624cb029892574ee6bc, type: 3}
   earthSprite: {fileID: 6749300307078728615, guid: e7f6a946acb91d647888b50314666f27, type: 3}
-  windSprite: {fileID: 0}
+  windSprite: {fileID: -7174208036521194418, guid: c79493e37f0d44540b6521266c7ae844, type: 3}
   pickupSound: {fileID: 8300000, guid: 9f0cccf9ec7c41519027d3602d665fd2, type: 3}
 --- !u!1 &1130445669193991283
 GameObject:

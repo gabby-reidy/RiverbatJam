@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: c79493e37f0d44540b6521266c7ae844
+guid: 626f85cef332edd4398f9f7defcf17c1
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -7174208036521194418
-    second: spellbook_wind_0
+      213: -2158231102458187950
+    second: cutscene_fae_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: spellbook_wind_0
+      name: cutscene_fae_0
       rect:
         serializedVersion: 2
-        x: 111
-        y: 27
-        width: 1748
-        height: 2007
+        x: 0
+        y: 0
+        width: 1920
+        height: 1080
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: e4cc6662dc7107c90800000000000000
-      internalID: -7174208036521194418
+      spriteID: 25fa7c24f3c6c02e0800000000000000
+      internalID: -2158231102458187950
       vertices: []
       indices: 
       edges: []
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      spellbook_wind_0: -7174208036521194418
+      cutscene_fae_0: -2158231102458187950
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
