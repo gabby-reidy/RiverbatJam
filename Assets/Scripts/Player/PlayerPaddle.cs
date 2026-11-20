@@ -85,8 +85,16 @@ public class PlayerPaddle : MonoBehaviour
         moveInput = Vector2.ClampMagnitude(moveInput, 1f);
     }
 
+    public bool ControlsLocked { get; set; }
+
     private void FixedUpdate()
     {
+        if (ControlsLocked)
+        {
+            VerticalMoveSpeed = 0f;
+            HorizontalMoveSpeed = 0f;
+            return;
+        }
         Vector2 nextPosition = rb.position +
             moveInput * moveSpeed * Time.fixedDeltaTime + GetDashStep();
 

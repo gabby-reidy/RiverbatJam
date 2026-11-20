@@ -46,8 +46,8 @@ public class BattleHUD : MonoBehaviour
         UpdateLifeIcons(enemyLifeIcons, enemy.CurrentLives);
         playerFill.anchorMax = new Vector2(Mathf.Clamp01((float)player.CurrentHealth / Mathf.Max(1, player.MaxHealth)), 1);
         enemyFill.anchorMax = new Vector2(Mathf.Clamp01((float)enemy.CurrentHealth / Mathf.Max(1, enemy.MaxHealth)), 1);
-        launchPrompt.gameObject.SetActive(gameBall.IsCaughtByPlayer && !gameBall.IsBattleOver);
-        bool hasResult = gameBall.IsBattleOver && (player.IsDefeated || enemy.IsDefeated);
+        launchPrompt.gameObject.SetActive(gameBall.IsCaughtByPlayer && !gameBall.IsBattleOver && !gameBall.GameplayLocked);
+        bool hasResult = !gameBall.CampaignControlled && gameBall.IsBattleOver && (player.IsDefeated || enemy.IsDefeated);
         resultLabel.gameObject.SetActive(hasResult);
         if (hasResult)
         {

@@ -36,6 +36,11 @@ public class SceneLoader : MonoBehaviour
         LoadScene(startingScene);
     }
 
+    public void RestartBattle(string sceneName)
+    {
+        LoadScene(sceneName);
+    }
+
     public void LoadMainMenu()
     {
         LoadScene(mainMenuScene);

@@ -91,11 +91,21 @@ public class EnemyPaddle : MonoBehaviour
         ballBody = gameBall.GetComponent<Rigidbody2D>();
         frontCollider = GetComponentInChildren<PolygonCollider2D>();
         CircleCollider2D ballCollider = gameBall.GetComponent<CircleCollider2D>();
-        ballRadius = ballCollider != null ? ballCollider.bounds.extents.x : 0.15f;
+        ballRadius = ballCollider != null
+            ? ballCollider.radius * Mathf.Max(Mathf.Abs(gameBall.transform.lossyScale.x), Mathf.Abs(gameBall.transform.lossyScale.y))
+            : 0.15f;
     }
+
+    public bool ControlsLocked { get; set; }
 
     private void FixedUpdate()
     {
+        if (ControlsLocked)
+        {
+            VerticalMoveSpeed = 0f;
+            HorizontalMoveSpeed = 0f;
+            return;
+        }
         VerticalMoveSpeed = 0f;
         HorizontalMoveSpeed = 0f;
         if (opponentData == null || gameBall == null || ballBody == null || gameBall.IsBattleOver)

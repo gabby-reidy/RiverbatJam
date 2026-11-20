@@ -61,6 +61,20 @@ public class GameBall : MonoBehaviour
     public int ReflectionCount => reflectionCount;
 
     public bool IsBattleOver { get; private set; }
+    public bool GameplayLocked { get; set; }
+    public int InputBlockedThroughFrame { get; set; } = -1;
+    public bool CampaignControlled { get; set; }
+    public float OpeningServeMultiplier { get; set; } = 1f;
+    public event System.Action<bool, bool, bool> RallyEnded;
+    private float nextServeMultiplier = 1f;
+
+    public void ServeTo(bool servePlayer, float multiplier = 1f)
+    {
+        if (IsBattleOver) return;
+        CatchBall(servePlayer ? playerPaddle : enemyPaddle, servePlayer ? 1f : -1f);
+        LastHitSide = servePlayer ? 0 : 1;
+        nextServeMultiplier = multiplier;
+    }
 
     public float FreezeTimeRemaining => freezeTimer;
     public float MaxBounceAngle => maxBounceAngle;
@@ -69,7 +83,7 @@ public class GameBall : MonoBehaviour
     public bool IsFireCharged { get; private set; }
 
     public bool IsFrozen => freezeTimer > 0f;
-    public bool IsInPlay => !IsBattleOver && !IsCaught && !IsFrozen && serveTimer <= 0f;
+    public bool IsInPlay => !GameplayLocked && !IsBattleOver && !IsCaught && !IsFrozen && serveTimer <= 0f;
     public Vector2 TravelVelocity => moveDirection * currentSpeed;
     private float freezeTimer;
     private float windTimer;
@@ -125,7 +139,8 @@ public class GameBall : MonoBehaviour
 
         FindBackCollider(ref playerBackCollider, playerHealth);
         FindBackCollider(ref enemyBackCollider, enemyHealth);
-        ResetBall();
+        if (CampaignControlled) ServeTo(false, OpeningServeMultiplier);
+        else ResetBall();
     }
 
     private void FindBackCollider(ref BoxCollider2D backCollider, Component paddle)
@@ -148,6 +163,7 @@ public class GameBall : MonoBehaviour
 
     private void Update()
     {
+        if (GameplayLocked || Time.frameCount <= InputBlockedThroughFrame) return;
         if (!IsBattleOver && heldPaddle == playerPaddle && IsCaught
             && Time.frameCount > caughtFrame && Keyboard.current != null
             && Keyboard.current.spaceKey.wasPressedThisFrame)
@@ -166,6 +182,7 @@ public class GameBall : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (GameplayLocked) return;
         if (IsBattleOver)
         {
             return;
@@ -212,6 +229,8 @@ public class GameBall : MonoBehaviour
             }
 
             GoalDamaged?.Invoke();
+            bool playerDamaged = rb.position.x < leftGoalX;
+            bool lostLife = playerHealth.CurrentLives < playerLivesBefore || enemyHealth.CurrentLives < enemyLivesBefore;
 
             if (playerHealth.CurrentLives < playerLivesBefore || enemyHealth.CurrentLives < enemyLivesBefore)
             {
@@ -224,7 +243,7 @@ public class GameBall : MonoBehaviour
             {
                 Debug.Log(playerHealth.IsDefeated ? "Player defeated. Enemy wins!" : "Enemy defeated. Player wins!", this);
                 StopBattle();
-                if (enemyHealth.IsDefeated && !playerHealth.IsDefeated)
+                if (!CampaignControlled && enemyHealth.IsDefeated && !playerHealth.IsDefeated)
                 {
                     if (SceneLoader.Instance != null)
                         SceneLoader.Instance.ReturnAfterVictory(gameObject.scene.name);
@@ -234,8 +253,9 @@ public class GameBall : MonoBehaviour
             }
             else
             {
-                ResetBall();
+                ServeTo(playerDamaged);
             }
+            RallyEnded?.Invoke(playerDamaged, lostLife, IsBattleOver);
             return;
         }
 
@@ -396,6 +416,7 @@ public class GameBall : MonoBehaviour
     private void CatchBall(Collider2D paddle, float horizontalDirection)
     {
         IsFireCharged = false;
+        nextServeMultiplier = 1f;
         if (AudioManager.instance != null) AudioManager.instance.PlaySFX(catchSound);
         EndFreeze();
         windTimer = 0f;
@@ -446,7 +467,8 @@ public class GameBall : MonoBehaviour
             : enemyHealth.HorizontalMoveSpeed;
         // Forward is +X for the player and -X for the enemy.
         float speedChange = horizontalSpeed * heldDirection * Mathf.Max(0f, horizontalSpeedInfluence);
-        currentSpeed = ClampBallSpeed(ClampBallSpeed(moveSpeed) + speedChange);
+        currentSpeed = ClampBallSpeed((ClampBallSpeed(moveSpeed) + speedChange) * nextServeMultiplier);
+        nextServeMultiplier = 1f;
 
         heldPaddle = null;
         launchRequested = false;

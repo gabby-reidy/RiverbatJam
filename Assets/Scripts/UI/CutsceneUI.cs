@@ -1,5 +1,6 @@
 using TMPro;
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -30,6 +31,8 @@ public class CutsceneDialogueStep
     public float shotSwitchDelay = 0.5f;
     public CutsceneShot shotAfterDialogue = CutsceneShot.KeepCurrent;
     public Sprite backgroundOverride;
+    public bool revealMemory;
+    public AudioClip music;
     [Tooltip("After both timers finish, show the Space prompt and wait before advancing.")]
     public bool waitForSpace;
     public CutsceneExpression[] expressionChanges = new CutsceneExpression[0];
@@ -62,6 +65,16 @@ public class CutsceneUI : MonoBehaviour
     [SerializeField] private CutsceneShotLayout[] shotLayouts;
     [Header("Dialogue Sequence")]
     [SerializeField] private CutsceneDialogueStep[] dialogueSteps;
+
+    [Header("Campaign Transitions")]
+    [SerializeField] private Image fadeOverlay;
+    [SerializeField] private Image memoryImage;
+    [SerializeField] private Sprite memorySprite;
+    [SerializeField, Min(0f)] private float entryFadeDuration = 1.5f;
+    [SerializeField, Min(0.01f)] private float memoryFadeDuration = 1f;
+    [SerializeField] private AudioClip sceneMusic;
+    private bool transitioning;
+    private bool memoryRevealed;
 
     private enum Playback { Revealing, Holding, WaitingForSpace, Finished, Leaving }
     private Playback playback;
@@ -109,10 +122,18 @@ public class CutsceneUI : MonoBehaviour
             if (layout.boss != null) layout.boss.sprite = layout.originalBoss;
             layout.root.SetActive(false);
         }
+        transitioning = false;
+        memoryRevealed = false;
+        if (memoryImage != null) memoryImage.gameObject.SetActive(false);
+        if (AudioManager.instance != null)
+        {
+            if (sceneMusic != null) AudioManager.instance.PlayMusic(sceneMusic);
+            else AudioManager.instance.StopMusic();
+        }
         currentShot = null;
         SwitchShot(initialShot, null);
         stepIndex = 0;
-        BeginStep();
+        StartCoroutine(FadeIn());
     }
 
     private void BeginStep()
@@ -131,6 +152,7 @@ public class CutsceneUI : MonoBehaviour
             enabled = false;
             return;
         }
+        if (step.music != null && AudioManager.instance != null) AudioManager.instance.PlayMusic(step.music);
         speakerLabel.text = step.speakerName ?? "";
         dialogueLabel.text = "";
         dialogueBox.SetActive(true);
@@ -144,7 +166,7 @@ public class CutsceneUI : MonoBehaviour
 
     private void Update()
     {
-        if (playback == Playback.Leaving) return;
+        if (transitioning || playback == Playback.Leaving) return;
         if (playback == Playback.Finished) { EnterFight(); return; }
         if (playback == Playback.WaitingForSpace)
         {
@@ -185,6 +207,11 @@ public class CutsceneUI : MonoBehaviour
         bool holdComplete = elapsed >= Mathf.Max(0f, step.dialogueHoldDuration);
         if (holdComplete) dialogueBox.SetActive(false);
         if (!holdComplete || !shotSwitched) return;
+        if (step.revealMemory && !memoryRevealed && memorySprite != null)
+        {
+            StartCoroutine(RevealMemory());
+            return;
+        }
         if (step.waitForSpace)
         {
             continuePrompt.SetActive(true);
@@ -232,6 +259,50 @@ public class CutsceneUI : MonoBehaviour
             }
         }
         if (background != null && currentShot != null) currentShot.background.sprite = background;
+    }
+
+    private IEnumerator FadeIn()
+    {
+        transitioning = true;
+        dialogueBox.SetActive(false);
+        continuePrompt.SetActive(false);
+        if (fadeOverlay != null)
+        {
+            fadeOverlay.gameObject.SetActive(true);
+            float elapsed = 0f;
+            while (elapsed < entryFadeDuration)
+            {
+                fadeOverlay.color = new Color(0, 0, 0, 1f - elapsed / Mathf.Max(0.01f, entryFadeDuration));
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+            fadeOverlay.gameObject.SetActive(false);
+        }
+        transitioning = false;
+        BeginStep();
+    }
+
+    private IEnumerator RevealMemory()
+    {
+        transitioning = true;
+        memoryImage.sprite = memorySprite;
+        memoryImage.color = new Color(1, 1, 1, 0);
+        memoryImage.gameObject.SetActive(true);
+        float elapsed = 0f;
+        while (elapsed < memoryFadeDuration)
+        {
+            memoryImage.color = new Color(1, 1, 1, elapsed / memoryFadeDuration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        memoryImage.color = Color.white;
+        memoryRevealed = true;
+        transitioning = false;
+    }
+
+    private void OnDisable()
+    {
+        StopAllCoroutines();
     }
 
     private void EnterFight()

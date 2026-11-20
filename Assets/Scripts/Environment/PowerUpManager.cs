@@ -97,7 +97,7 @@ public class PowerUpManager : MonoBehaviour
             enemy.CancelDash();
             return;
         }
-        if (Time.timeScale <= 0f) return;
+        if (Time.timeScale <= 0f || gameBall.GameplayLocked || Time.frameCount <= gameBall.InputBlockedThroughFrame) return;
 
         // Read after PlayerPaddle.Update so direction includes this frame's input.
         if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame && !gameBall.IsCaughtByPlayer)
@@ -117,7 +117,7 @@ public class PowerUpManager : MonoBehaviour
 
     public bool TryUse(bool usePlayerInventory)
     {
-        if (!isActiveAndEnabled || gameBall.IsBattleOver || Time.timeScale <= 0f)
+        if (!isActiveAndEnabled || gameBall.GameplayLocked || Time.frameCount <= gameBall.InputBlockedThroughFrame || gameBall.IsBattleOver || Time.timeScale <= 0f)
             return false;
 
         PowerUpType inventory = usePlayerInventory ? playerInventory : enemyInventory;

@@ -1043,7 +1043,16 @@ MonoBehaviour:
   firstGameScene: Cutscene
   preloadScenes:
   - Cutscene
+  - Cutscene2
+  - Cutscene3
+  - Cutscene4
+  - Cutscene5
   - FightScreen
+  - FightScreen2
+  - FightScreen3
+  - FightScreen4
+  - FightScreen5
+  - Credits
 --- !u!4 &582338116
 Transform:
   m_ObjectHideFlags: 0
@@ -3179,7 +3188,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MainMenuUI
   mainMenuPanel: {fileID: 1920815748}
   settingsPanel: {fileID: 620771800}
-  menuMusic: {fileID: 0}
+  menuMusic: {fileID: 8300000, guid: e07a8481bba248c49f48436de308a1b0, type: 3}
   buttonSound: {fileID: 8300000, guid: f24c63178bfe49e0b5f4025807351e80, type: 3}
 --- !u!114 &1626290599
 MonoBehaviour:
