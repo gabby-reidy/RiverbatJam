@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WizardOpponentData
   wizardName: Fae
   portrait: {fileID: 0}
-  battleSprite: {fileID: -7013697399336260618, guid: 18d432c74c88d494a98dbf6715ad79cf, type: 3}
+  battleSprite: {fileID: -8803410375293275465, guid: 30b565c66d3fc1046b3b506e35a4e688, type: 3}
   maxHealth: 100
   paddleMoveSpeed: 5
   reactionInterval: 0.1
