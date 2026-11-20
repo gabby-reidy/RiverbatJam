@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,8 +12,8 @@ public class BattleHUD : MonoBehaviour
     [SerializeField] private GameObject[] playerLifeIcons;
     [Tooltip("Assign life icons from the outside edge toward the center.")]
     [SerializeField] private GameObject[] enemyLifeIcons;
-    [SerializeField] private Text launchPrompt;
-    [SerializeField] private Text resultLabel;
+    [SerializeField] private TMP_Text launchPrompt;
+    [SerializeField] private TMP_Text resultLabel;
     [SerializeField] private RectTransform playerFill;
     [SerializeField] private RectTransform enemyFill;
     [SerializeField] private GameObject hudCanvas;

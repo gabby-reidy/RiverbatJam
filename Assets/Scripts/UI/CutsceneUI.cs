@@ -1,3 +1,4 @@
+using TMPro;
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -52,8 +53,8 @@ public class CutsceneUI : MonoBehaviour
     [SerializeField] private string fightScene = "FightScreen";
     [Header("Scene UI")]
     [SerializeField] private GameObject dialogueBox;
-    [SerializeField] private Text speakerLabel;
-    [SerializeField] private Text dialogueLabel;
+    [SerializeField] private TMP_Text speakerLabel;
+    [SerializeField] private TMP_Text dialogueLabel;
     [SerializeField] private GameObject continuePrompt;
     [SerializeField] private AudioClip continueSound;
     [Header("Shots")]
@@ -94,7 +95,7 @@ public class CutsceneUI : MonoBehaviour
             if (layout.player != null) layout.originalPlayer = layout.player.sprite;
             if (layout.boss != null) layout.originalBoss = layout.boss.sprite;
         }
-        dialogueLabel.supportRichText = false;
+        dialogueLabel.richText = false;
         configured = true;
     }
 

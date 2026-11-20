@@ -66,6 +66,8 @@ public class GameBall : MonoBehaviour
     public float MaxBounceAngle => maxBounceAngle;
     public BoxCollider2D EnemyBackCollider => enemyBackCollider;
     public PowerUpManager PowerUps => powerUps;
+    public bool IsFireCharged { get; private set; }
+
     public bool IsFrozen => freezeTimer > 0f;
     public bool IsInPlay => !IsBattleOver && !IsCaught && !IsFrozen && serveTimer <= 0f;
     public Vector2 TravelVelocity => moveDirection * currentSpeed;
@@ -77,6 +79,7 @@ public class GameBall : MonoBehaviour
     // -1 is a neutral serve, 0 is the player, 1 is the enemy.
     public int LastHitSide { get; private set; } = -1;
     public event System.Action LifeLost;
+    public event System.Action GoalDamaged;
     [SerializeField] private PowerUpManager powerUps;
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -208,6 +211,8 @@ public class GameBall : MonoBehaviour
                 enemyHealth.TakeDamage(currentDamage);
             }
 
+            GoalDamaged?.Invoke();
+
             if (playerHealth.CurrentLives < playerLivesBefore || enemyHealth.CurrentLives < enemyLivesBefore)
             {
                 playerHealth.RestoreHealth();
@@ -253,6 +258,11 @@ public class GameBall : MonoBehaviour
         }
 
         Collider2D hitCollider = collision.collider;
+        bool wasFireCharged = IsFireCharged;
+        if (hitCollider == playerPaddle || hitCollider == enemyPaddle ||
+            hitCollider == playerBackCollider || hitCollider == enemyBackCollider ||
+            hitCollider.GetComponentInParent<BarrierHealth>() != null)
+            IsFireCharged = false;
 
         if (hitCollider == playerBackCollider)
         {
@@ -269,11 +279,11 @@ public class GameBall : MonoBehaviour
 
         if (hitCollider == playerPaddle)
         {
-            BounceOffPaddle(playerPaddle, 1f);
+            BounceOffPaddle(playerPaddle, 1f, collision.GetContact(0).point, !wasFireCharged);
         }
         else if (hitCollider == enemyPaddle)
         {
-            BounceOffPaddle(enemyPaddle, -1f);
+            BounceOffPaddle(enemyPaddle, -1f, collision.GetContact(0).point, !wasFireCharged);
         }
         else
         {
@@ -356,6 +366,8 @@ public class GameBall : MonoBehaviour
         freezeTimer = 0f;
     }
 
+    public event System.Action WindActivated;
+
     public bool TryWind(float verticalImpulse, float duration)
     {
         if (!IsInPlay || verticalImpulse <= 0f || duration <= 0f || windTimer > 0f) return false;
@@ -365,6 +377,7 @@ public class GameBall : MonoBehaviour
         // Lock the force direction at activation so it keeps blowing past zero velocity.
         windAcceleration = -Mathf.Sign(verticalSpeed) * verticalImpulse / duration;
         windTimer = duration;
+        WindActivated?.Invoke();
         return true;
     }
 
@@ -382,6 +395,7 @@ public class GameBall : MonoBehaviour
 
     private void CatchBall(Collider2D paddle, float horizontalDirection)
     {
+        IsFireCharged = false;
         if (AudioManager.instance != null) AudioManager.instance.PlaySFX(catchSound);
         EndFreeze();
         windTimer = 0f;
@@ -440,7 +454,9 @@ public class GameBall : MonoBehaviour
         rb.linearVelocity = moveDirection * currentSpeed;
     }
 
-    private void BounceOffPaddle(Collider2D paddle, float horizontalDirection)
+    public event System.Action<Vector2, Vector2, Transform> ShieldReflected;
+
+    private void BounceOffPaddle(Collider2D paddle, float horizontalDirection, Vector2 contactPoint, bool canIgnite)
     {
         float paddleHorizontalSpeed = paddle == playerPaddle
             ? playerHealth.HorizontalMoveSpeed
@@ -484,7 +500,10 @@ public class GameBall : MonoBehaviour
         );
 
         LastHitSide = paddle == playerPaddle ? 0 : 1;
+        IsFireCharged = canIgnite && (paddle == playerPaddle
+            ? playerHealth.IsFireDashing : enemyHealth.IsFireDashing);
         IncreaseDamage();
+        ShieldReflected?.Invoke(contactPoint, moveDirection, paddle.transform);
         if (AudioManager.instance != null) AudioManager.instance.PlaySFX(reflectSound);
     }
 
@@ -524,6 +543,7 @@ public class GameBall : MonoBehaviour
 
     public void ResetBall()
     {
+        IsFireCharged = false;
         if (IsBattleOver)
         {
             return;

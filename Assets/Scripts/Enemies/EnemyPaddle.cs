@@ -45,6 +45,7 @@ public class EnemyPaddle : MonoBehaviour
     [SerializeField, Min(0.01f)] private float dashDuration = 0.15f;
     private Vector2 dashDirection;
     private float dashTimer;
+    public bool IsFireDashing { get; private set; }
 
     [Header("Defensive Power-ups")]
     [SerializeField, Min(0.05f)] private float iceThreatWindow = 0.45f;
@@ -370,11 +371,13 @@ public class EnemyPaddle : MonoBehaviour
     public void CancelDash()
     {
         dashTimer = 0f;
+        IsFireDashing = false;
         dashDirection = Vector2.zero;
     }
 
     private Vector2 GetDashStep()
     {
+        IsFireDashing = dashTimer > 0f;
         float step = Mathf.Min(dashTimer, Time.fixedDeltaTime);
         dashTimer = Mathf.Max(0f, dashTimer - Time.fixedDeltaTime);
         return dashDirection * dashSpeedBoost * step;

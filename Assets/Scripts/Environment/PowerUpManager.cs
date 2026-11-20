@@ -11,6 +11,7 @@ public class PowerUpManager : MonoBehaviour
     [SerializeField] private EnemyPaddle enemy;
     [SerializeField, Min(0.1f)] private float enemyUseInterval = 2f;
     private float enemyUseTimer;
+    [SerializeField] private EarthRestoreEffect earthRestoreEffect;
     [Header("Power-up Effects")]
     [SerializeField, Min(0.01f)] private float iceDuration = 1.5f;
     [Tooltip("Total vertical velocity change spread over the Wind duration.")]
@@ -237,7 +238,11 @@ public class PowerUpManager : MonoBehaviour
         bool repaired = false;
         foreach (BarrierHealth barrier in barriers)
         {
-            if (barrier != null && barrier.Restore()) repaired = true;
+            if (barrier == null) continue;
+            bool wasBroken = barrier.IsBroken || !barrier.gameObject.activeSelf;
+            if (!barrier.Restore()) continue;
+            repaired = true;
+            if (earthRestoreEffect != null) earthRestoreEffect.Play(barrier, wasBroken);
         }
         return repaired;
     }
@@ -331,6 +336,7 @@ public class PowerUpManager : MonoBehaviour
     private void SetSlotArtwork(Image slot, PowerUpType type)
     {
         Sprite sprite = GetSprite(type);
+        slot.enabled = type != PowerUpType.None;
         slot.sprite = sprite;
         slot.preserveAspect = true;
         slot.color = sprite != null ? Color.white : GetColor(type);
