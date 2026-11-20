@@ -5,6 +5,11 @@ using UnityEngine.InputSystem;
 [DefaultExecutionOrder(100)]
 public class GameBall : MonoBehaviour
 {
+    [Header("Sound Effects")]
+    [SerializeField] private AudioClip catchSound;
+    [SerializeField] private AudioClip reflectSound;
+    [SerializeField] private AudioClip wallHitSound;
+
     [Header("Movement")]
     [SerializeField, Min(0.1f)] private float moveSpeed = 6f;
     [SerializeField, Min(0f)] private float serveDelay = 1f;
@@ -274,6 +279,7 @@ public class GameBall : MonoBehaviour
         {
             if (ReflectOffSurface(collision))
             {
+                if (AudioManager.instance != null) AudioManager.instance.PlaySFX(wallHitSound);
                 // Barriers absorb damage, but only paddles increase it.
                 BarrierHealth barrier = hitCollider.GetComponentInParent<BarrierHealth>();
                 if (barrier != null)
@@ -376,6 +382,7 @@ public class GameBall : MonoBehaviour
 
     private void CatchBall(Collider2D paddle, float horizontalDirection)
     {
+        if (AudioManager.instance != null) AudioManager.instance.PlaySFX(catchSound);
         EndFreeze();
         windTimer = 0f;
         windAcceleration = 0f;
@@ -478,6 +485,7 @@ public class GameBall : MonoBehaviour
 
         LastHitSide = paddle == playerPaddle ? 0 : 1;
         IncreaseDamage();
+        if (AudioManager.instance != null) AudioManager.instance.PlaySFX(reflectSound);
     }
 
     private void IncreaseDamage()

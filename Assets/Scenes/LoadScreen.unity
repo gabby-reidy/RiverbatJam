@@ -388,6 +388,7 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::LoadScreenUI
   continuePrompt: {fileID: 2300000190}
+  continueSound: {fileID: 8300000, guid: f24c63178bfe49e0b5f4025807351e80, type: 3}
 --- !u!1 &2500000200
 GameObject:
   m_ObjectHideFlags: 0

@@ -527,6 +527,7 @@ MonoBehaviour:
     backgroundOverride: {fileID: 0}
     waitForSpace: 1
     expressionChanges: []
+  continueSound: {fileID: 8300000, guid: f24c63178bfe49e0b5f4025807351e80, type: 3}
 --- !u!1 &2510000000
 GameObject:
   m_ObjectHideFlags: 0

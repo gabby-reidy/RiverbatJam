@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 public class LoadScreenUI : MonoBehaviour
 {
     [SerializeField] private GameObject continuePrompt;
+    [SerializeField] private AudioClip continueSound;
     private bool ready;
     private int readyFrame;
 
@@ -33,6 +34,11 @@ public class LoadScreenUI : MonoBehaviour
 
         if (SceneLoader.Instance.ContinueFromLoadScreen())
         {
+            if (AudioManager.instance != null)
+            {
+                AudioManager.instance.EnableAudio();
+                AudioManager.instance.PlaySFX(continueSound);
+            }
             ready = false;
             continuePrompt.SetActive(false);
         }

@@ -3005,7 +3005,7 @@ MonoBehaviour:
   mainMenuPanel: {fileID: 1920815748}
   settingsPanel: {fileID: 620771800}
   menuMusic: {fileID: 0}
-  buttonSound: {fileID: 0}
+  buttonSound: {fileID: 8300000, guid: f24c63178bfe49e0b5f4025807351e80, type: 3}
 --- !u!114 &1626290599
 MonoBehaviour:
   m_ObjectHideFlags: 0

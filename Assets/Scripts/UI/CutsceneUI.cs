@@ -55,6 +55,7 @@ public class CutsceneUI : MonoBehaviour
     [SerializeField] private Text speakerLabel;
     [SerializeField] private Text dialogueLabel;
     [SerializeField] private GameObject continuePrompt;
+    [SerializeField] private AudioClip continueSound;
     [Header("Shots")]
     [SerializeField] private CutsceneShot initialShot = CutsceneShot.PlayerBehindBossAhead;
     [SerializeField] private CutsceneShotLayout[] shotLayouts;
@@ -148,6 +149,11 @@ public class CutsceneUI : MonoBehaviour
         {
             if (Time.frameCount > promptFrame && Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
             {
+                if (AudioManager.instance != null)
+                {
+                    AudioManager.instance.EnableAudio();
+                    AudioManager.instance.PlaySFX(continueSound);
+                }
                 stepIndex++;
                 BeginStep();
             }

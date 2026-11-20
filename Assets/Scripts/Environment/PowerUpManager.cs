@@ -29,6 +29,7 @@ public class PowerUpManager : MonoBehaviour
 
     [SerializeField] private PowerUpType playerInventory;
     [SerializeField] private PowerUpType enemyInventory;
+    [SerializeField] private AudioClip pickupSound;
     [Header("Power-up Artwork")]
     [SerializeField] private Sprite fireSprite;
     [SerializeField] private Sprite iceSprite;
@@ -275,6 +276,7 @@ public class PowerUpManager : MonoBehaviour
         {
             if (pickupSpots[i] != hit || fieldTypes[i] == PowerUpType.None) continue;
             PowerUpType type = fieldTypes[i];
+            if (AudioManager.instance != null) AudioManager.instance.PlaySFX(pickupSound);
             fieldTypes[i] = PowerUpType.None;
             pickupRenderers[i].enabled = false;
             pickupSpots[i].enabled = false;
