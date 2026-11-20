@@ -17,6 +17,44 @@ public class SceneLoader : MonoBehaviour
     public bool IsGameReady { get; private set; }
 
     public bool IsLoading {get; private set;}
+    public bool IsTransitioning { get; private set; }
+    [SerializeField] private UnityEngine.UI.Image transitionOverlay;
+    [SerializeField, Min(0.01f)] private float transitionDuration = 2f;
+    private float previousTimeScale = 1f;
+
+    private void BeginTransition()
+    {
+        IsLoading = true;
+        IsTransitioning = true;
+        previousTimeScale = Time.timeScale;
+        Time.timeScale = 0f;
+    }
+
+    private IEnumerator Fade(float from, float to)
+    {
+        if (transitionOverlay == null)
+        {
+            Debug.LogError("Assign the scene transition overlay on SceneLoader.", this);
+            yield break;
+        }
+        transitionOverlay.gameObject.SetActive(true);
+        float elapsed = 0f;
+        while (elapsed < transitionDuration)
+        {
+            transitionOverlay.color = new Color(0f, 0f, 0f, Mathf.Lerp(from, to, elapsed / transitionDuration));
+            yield return null;
+            elapsed += Time.unscaledDeltaTime;
+        }
+        transitionOverlay.color = new Color(0f, 0f, 0f, to);
+        if (to == 0f) transitionOverlay.gameObject.SetActive(false);
+    }
+
+    private void EndTransition()
+    {
+        Time.timeScale = previousTimeScale;
+        IsTransitioning = false;
+        IsLoading = false;
+    }
 
     private void Awake()
     {
@@ -33,7 +71,7 @@ public class SceneLoader : MonoBehaviour
     public void StartGame()
     {
         Time.timeScale = 1f;
-        LoadScene(startingScene);
+        LoadScene(startingScene, true);
     }
 
     public void RestartBattle(string sceneName)
@@ -46,7 +84,7 @@ public class SceneLoader : MonoBehaviour
         LoadScene(mainMenuScene);
     }
 
-    private void LoadScene(string sceneName)
+    private void LoadScene(string sceneName, bool keepMusic = false)
     {
         if(IsLoading)
         {
@@ -65,41 +103,22 @@ public class SceneLoader : MonoBehaviour
             return;
         }
 
-        IsGameReady = false;
-        preloaded.Clear();
-        IsLoading = true;
-        AsyncOperation operation;
-
-        try
-        {
-            operation = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
-        }
-        catch(Exception exception)
-        {
-            IsLoading = false;
-            Debug.LogException(exception, this);
-            return;
-        }
-
-        if(operation == null)
-        {
-            IsLoading = false;
-            Debug.LogError("Unity could not start loading scene: " + sceneName, this);
-            return;
-        }
-
-        if(AudioManager.instance != null)
-        {
-            AudioManager.instance.StopMusic();
-        }
-
-        StartCoroutine(WaitForScene(operation));
+        BeginTransition();
+        StartCoroutine(LoadWithFade(sceneName, keepMusic));
     }
 
-    private IEnumerator WaitForScene(AsyncOperation operation)
+    private IEnumerator LoadWithFade(string sceneName, bool keepMusic)
     {
-        yield return operation;
-        IsLoading = false;
+        yield return Fade(0f, 1f);
+        IsGameReady = false;
+        preloaded.Clear();
+        if (!keepMusic && AudioManager.instance != null) AudioManager.instance.StopMusic();
+        AsyncOperation operation = null;
+        try { operation = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single); }
+        catch (Exception exception) { Debug.LogException(exception, this); }
+        if (operation != null) yield return operation;
+        yield return Fade(1f, 0f);
+        EndTransition();
     }
 
     public IEnumerator PreloadGame()
@@ -181,26 +200,35 @@ public class SceneLoader : MonoBehaviour
 
     public bool ContinueFromLoadScreen()
     {
-        if (!IsGameReady || IsLoading || !ActivateGameScene(firstGameScene)) return false;
-        Scene loadingScene = SceneManager.GetSceneByName(startingScene);
-        if (loadingScene.isLoaded)
-        {
-            foreach (GameObject root in loadingScene.GetRootGameObjects()) root.SetActive(false);
-            IsLoading = true;
-            StartCoroutine(WaitForScene(SceneManager.UnloadSceneAsync(loadingScene)));
-        }
-        return true;
+        return ActivateGameScene(firstGameScene);
     }
 
     public bool ActivateGameScene(string sceneName)
     {
         if (IsLoading || !IsGameReady || !preloaded.TryGetValue(sceneName, out PreloadedScene next) || next == null)
             return false;
-        if (!SceneManager.SetActiveScene(next.gameObject.scene)) return false;
-        foreach (PreloadedScene entry in preloaded.Values)
-            if (entry != null && entry != next) entry.SetContentActive(false);
-        next.SetContentActive(true);
+        BeginTransition();
+        StartCoroutine(ActivateWithFade(next));
         return true;
+    }
+
+    private IEnumerator ActivateWithFade(PreloadedScene next)
+    {
+        yield return Fade(0f, 1f);
+        if (next != null && SceneManager.SetActiveScene(next.gameObject.scene))
+        {
+            foreach (PreloadedScene entry in preloaded.Values)
+                if (entry != null && entry != next) entry.SetContentActive(false);
+            next.SetContentActive(true);
+            Scene loadingScene = SceneManager.GetSceneByName(startingScene);
+            if (loadingScene.isLoaded)
+            {
+                foreach (GameObject root in loadingScene.GetRootGameObjects()) root.SetActive(false);
+                yield return SceneManager.UnloadSceneAsync(loadingScene);
+            }
+        }
+        yield return Fade(1f, 0f);
+        EndTransition();
     }
 
     public bool EnterFight(string sceneName)
@@ -224,7 +252,8 @@ public class SceneLoader : MonoBehaviour
 
     private IEnumerator RefreshFight(string sceneName)
     {
-        // Temporary loop: prepare a fresh fight while the placeholder cutscene is shown.
+        // Wait until the outgoing fight is no longer visible before refreshing it.
+        while (IsTransitioning) yield return null;
         IsLoading = true;
         IsPreloading = true;
         preloaded.Remove(sceneName);

@@ -125,11 +125,6 @@ public class CutsceneUI : MonoBehaviour
         transitioning = false;
         memoryRevealed = false;
         if (memoryImage != null) memoryImage.gameObject.SetActive(false);
-        if (AudioManager.instance != null)
-        {
-            if (sceneMusic != null) AudioManager.instance.PlayMusic(sceneMusic);
-            else AudioManager.instance.StopMusic();
-        }
         currentShot = null;
         SwitchShot(initialShot, null);
         stepIndex = 0;
@@ -166,7 +161,7 @@ public class CutsceneUI : MonoBehaviour
 
     private void Update()
     {
-        if (transitioning || playback == Playback.Leaving) return;
+        if (transitioning || playback == Playback.Leaving || (SceneLoader.Instance != null && SceneLoader.Instance.IsTransitioning)) return;
         if (playback == Playback.Finished) { EnterFight(); return; }
         if (playback == Playback.WaitingForSpace)
         {
@@ -266,7 +261,13 @@ public class CutsceneUI : MonoBehaviour
         transitioning = true;
         dialogueBox.SetActive(false);
         continuePrompt.SetActive(false);
-        if (fadeOverlay != null)
+        bool sharedFade = SceneLoader.Instance != null && SceneLoader.Instance.IsTransitioning;
+        if (sharedFade)
+        {
+            if (fadeOverlay != null) fadeOverlay.gameObject.SetActive(false);
+            while (SceneLoader.Instance != null && SceneLoader.Instance.IsTransitioning) yield return null;
+        }
+        else if (fadeOverlay != null)
         {
             fadeOverlay.gameObject.SetActive(true);
             float elapsed = 0f;
@@ -277,6 +278,11 @@ public class CutsceneUI : MonoBehaviour
                 yield return null;
             }
             fadeOverlay.gameObject.SetActive(false);
+        }
+        if (AudioManager.instance != null)
+        {
+            if (sceneMusic != null) AudioManager.instance.PlayMusic(sceneMusic);
+            else AudioManager.instance.StopMusic();
         }
         transitioning = false;
         BeginStep();

@@ -120,6 +120,18 @@ public class AudioManager : MonoBehaviour
         musicSource.Play();
     }
 
+    public bool TryGetMusicPlaybackTime(AudioClip clip, out float seconds)
+    {
+        seconds = 0f;
+        if (clip == null || musicSource == null || musicSource.clip != clip || !musicSource.isPlaying)
+        {
+            return false;
+        }
+
+        seconds = musicSource.timeSamples / (float)clip.frequency;
+        return true;
+    }
+
     public void StopMusic()
     {
         requestedMusic = null;

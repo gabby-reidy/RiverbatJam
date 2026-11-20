@@ -37,11 +37,6 @@ public class MainMenuUI : MonoBehaviour
         PlayButtonAudio();
         SceneLoader.Instance.StartGame();
 
-        if(SceneLoader.Instance.IsLoading)
-        {
-            mainMenuPanel.SetActive(false);
-            settingsPanel.SetActive(false);
-        }
     }
 
     public void OpenSettings()

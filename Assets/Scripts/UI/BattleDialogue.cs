@@ -48,10 +48,12 @@ public class BattleDialogue : MonoBehaviour
         ball.gameObject.SetActive(false);
         continuePrompt.SetActive(false);
         defeatPanel.SetActive(false);
+        dialogueBox.SetActive(false);
     }
 
     private IEnumerator Start()
     {
+        while (SceneLoader.Instance != null && SceneLoader.Instance.IsTransitioning) yield return null;
         if (AudioManager.instance != null)
         {
             if (battleMusic != null) AudioManager.instance.PlayMusic(battleMusic);
@@ -144,7 +146,7 @@ public class BattleDialogue : MonoBehaviour
 
     private void Update()
     {
-        if (!choices || leaving) return;
+        if (!choices || leaving || (SceneLoader.Instance != null && SceneLoader.Instance.IsTransitioning)) return;
         bool clicked = Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame;
         Vector2 pointer = Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero;
         if ((Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame) ||
