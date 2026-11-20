@@ -7,6 +7,24 @@ public class SettingsMenuUI : MonoBehaviour
     [SerializeField] private Slider musicVolumeSlider;
     [SerializeField] private Slider sfxVolumeSlider;
 
+    [Header("Navigation")]
+    [SerializeField] private GameObject returnPanel;
+    [SerializeField] private AudioClip buttonSound;
+    [SerializeField] private UnityEngine.Events.UnityEvent onClosed = new UnityEngine.Events.UnityEvent();
+
+    public void Close()
+    {
+        if(AudioManager.instance != null)
+        {
+            AudioManager.instance.EnableAudio();
+            AudioManager.instance.PlaySFX(buttonSound);
+        }
+
+        gameObject.SetActive(false);
+        if(returnPanel != null) returnPanel.SetActive(true);
+        onClosed.Invoke();
+    }
+
     private SettingsManager settingsManager;
     private bool slidersReady;
 
