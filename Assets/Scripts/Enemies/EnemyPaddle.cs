@@ -89,7 +89,7 @@ public class EnemyPaddle : MonoBehaviour
         }
 
         ballBody = gameBall.GetComponent<Rigidbody2D>();
-        frontCollider = GetComponentInChildren<PolygonCollider2D>();
+        frontCollider = gameBall.EnemyFrontCollider;
         CircleCollider2D ballCollider = gameBall.GetComponent<CircleCollider2D>();
         ballRadius = ballCollider != null
             ? ballCollider.radius * Mathf.Max(Mathf.Abs(gameBall.transform.lossyScale.x), Mathf.Abs(gameBall.transform.lossyScale.y))

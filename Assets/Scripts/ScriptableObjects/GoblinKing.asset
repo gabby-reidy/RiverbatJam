@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WizardOpponentData
   wizardName: GoblinKing
   portrait: {fileID: 0}
-  battleSprite: {fileID: 0}
+  battleSprite: {fileID: 2050874572971186671, guid: ed665f0b70bddb840a341bdcb5dca035, type: 3}
   maxHealth: 100
   paddleMoveSpeed: 5
   reactionInterval: 0.3

@@ -1000,6 +1000,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
+  - component: {fileID: 7800000005}
+  - component: {fileID: 7800000004}
   - component: {fileID: 1275001406}
   - component: {fileID: 1275001408}
   - component: {fileID: 1275001407}
@@ -4141,8 +4143,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BattleDialogue
   ball: {fileID: 1039872180}
-  player: {fileID: 0}
-  enemy: {fileID: 0}
+  player: {fileID: 7800000001}
+  enemy: {fileID: 7800000004}
   dialogueBox: {fileID: 6200000004}
   speakerLabel: {fileID: 6200000015}
   dialogueLabel: {fileID: 6200000019}
@@ -4212,11 +4214,11 @@ PrefabInstance:
     - target: {fileID: 1815582461474591702, guid: 766a09a1d7330624e953bc22c5072bfe, type: 3}
       propertyPath: enemy
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 7800000004}
     - target: {fileID: 1815582461474591702, guid: 766a09a1d7330624e953bc22c5072bfe, type: 3}
       propertyPath: player
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 7800000001}
     - target: {fileID: 1815582461474591702, guid: 766a09a1d7330624e953bc22c5072bfe, type: 3}
       propertyPath: gameBall
       value: 
@@ -4224,11 +4226,11 @@ PrefabInstance:
     - target: {fileID: 2290690803882102777, guid: 766a09a1d7330624e953bc22c5072bfe, type: 3}
       propertyPath: enemy
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 7800000004}
     - target: {fileID: 2290690803882102777, guid: 766a09a1d7330624e953bc22c5072bfe, type: 3}
       propertyPath: player
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 7800000001}
     - target: {fileID: 2290690803882102777, guid: 766a09a1d7330624e953bc22c5072bfe, type: 3}
       propertyPath: gameBall
       value: 
@@ -4818,16 +4820,103 @@ PrefabInstance:
     - target: {fileID: 7657047444026132646, guid: a52f7b054056067428b457bf495b9a95, type: 3}
       propertyPath: enemyPaddle
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 638624444}
     - target: {fileID: 7657047444026132646, guid: a52f7b054056067428b457bf495b9a95, type: 3}
       propertyPath: playerPaddle
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 7800000002}
+    - target: {fileID: 7657047444026132646, guid: a52f7b054056067428b457bf495b9a95, type: 3}
+      propertyPath: playerBackCollider
+      value: 
+      objectReference: {fileID: 7800000003}
+    - target: {fileID: 7657047444026132646, guid: a52f7b054056067428b457bf495b9a95, type: 3}
+      propertyPath: enemyBackCollider
+      value: 
+      objectReference: {fileID: 1275001407}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a52f7b054056067428b457bf495b9a95, type: 3}
+--- !u!114 &7800000001 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1694217943026202696, guid: 0194b417db2e93e4fb312f10ad3e6a26, type: 3}
+  m_PrefabInstance: {fileID: 1762801528}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23a0a083921150e44869ab5b0abfc961, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerPaddle
+--- !u!68 &7800000002 stripped
+EdgeCollider2D:
+  m_CorrespondingSourceObject: {fileID: 9176494488145646730, guid: 0194b417db2e93e4fb312f10ad3e6a26, type: 3}
+  m_PrefabInstance: {fileID: 1762801528}
+  m_PrefabAsset: {fileID: 0}
+--- !u!61 &7800000003 stripped
+BoxCollider2D:
+  m_CorrespondingSourceObject: {fileID: 7895820449466693099, guid: 0194b417db2e93e4fb312f10ad3e6a26, type: 3}
+  m_PrefabInstance: {fileID: 1762801528}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7800000004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1275001405}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ac9d9ffcc9132b4da3bad9e867a8f1f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyPaddle
+  opponentData: {fileID: 11400000, guid: df0adabb2f28d2f48a968c3bffa95d64, type: 2}
+  gameBall: {fileID: 1039872180}
+  minX: 0.5
+  maxX: 8
+  minY: -3.5
+  maxY: 3.5
+  trackingDeadZone: 0.1
+  bottomBounceY: -4.1566
+  topBounceY: 4.1483
+  recoveryY: 0
+  approachWindow: 0.6
+  verticalAlignmentTolerance: 1
+  currentHealth: 0
+  startingLives: 3
+  currentLives: 0
+  dashSpeedBoost: 12
+  dashDuration: 0.15
+  iceThreatWindow: 0.45
+  dashThreatWindow: 0.65
+--- !u!50 &7800000005
+Rigidbody2D:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1275001405}
+  m_BodyType: 1
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_GravityScale: 0
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 1
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 4
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

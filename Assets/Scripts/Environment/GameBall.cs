@@ -79,6 +79,7 @@ public class GameBall : MonoBehaviour
     public float FreezeTimeRemaining => freezeTimer;
     public float MaxBounceAngle => maxBounceAngle;
     public BoxCollider2D EnemyBackCollider => enemyBackCollider;
+    public Collider2D EnemyFrontCollider => enemyPaddle;
     public PowerUpManager PowerUps => powerUps;
     public bool IsFireCharged { get; private set; }
 
@@ -98,7 +99,29 @@ public class GameBall : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (TryCatchFromTrigger(other)) return;
         if (powerUps != null) powerUps.Collect(other);
+    }
+
+    private void OnTriggerStay2D(Collider2D other)
+    {
+        TryCatchFromTrigger(other);
+    }
+
+    private bool TryCatchFromTrigger(Collider2D other)
+    {
+        if (GameplayLocked || IsBattleOver || IsCaught || serveTimer > 0f) return false;
+        if (other == playerBackCollider && playerPaddle != null)
+        {
+            CatchBall(playerPaddle, 1f);
+            return true;
+        }
+        if (other == enemyBackCollider && enemyPaddle != null)
+        {
+            CatchBall(enemyPaddle, -1f);
+            return true;
+        }
+        return false;
     }
 
     private PlayerPaddle playerHealth;
@@ -139,6 +162,9 @@ public class GameBall : MonoBehaviour
 
         FindBackCollider(ref playerBackCollider, playerHealth);
         FindBackCollider(ref enemyBackCollider, enemyHealth);
+        // Catch areas detect contact without trapping the ball against the solid shield.
+        if (playerBackCollider != null) playerBackCollider.isTrigger = true;
+        if (enemyBackCollider != null) enemyBackCollider.isTrigger = true;
         if (CampaignControlled) ServeTo(false, OpeningServeMultiplier);
         else ResetBall();
     }
@@ -337,11 +363,16 @@ public class GameBall : MonoBehaviour
             else if (hitCollider == enemyBackCollider) CatchBall(enemyPaddle, -1f);
             return;
         }
-        if (hitCollider == playerPaddle || hitCollider == enemyPaddle
-            || hitCollider == playerBackCollider || hitCollider == enemyBackCollider)
+        if (hitCollider == playerPaddle || hitCollider == enemyPaddle)
         {
+            float direction = hitCollider == playerPaddle ? 1f : -1f;
+            ClearShieldContact(hitCollider, direction);
+            // Recover an existing contact without counting another return.
+            moveDirection.x = Mathf.Abs(moveDirection.x) * direction;
+            rb.linearVelocity = moveDirection * currentSpeed;
             return;
         }
+        if (hitCollider == playerBackCollider || hitCollider == enemyBackCollider) return;
 
         // A paddle can redirect us into a wall whose contact never ended.
         // Correct direction without replaying damage, momentum, or catching.
@@ -521,12 +552,29 @@ public class GameBall : MonoBehaviour
             Mathf.Sin(angle)
         );
 
+        ClearShieldContact(paddle, horizontalDirection);
+
         LastHitSide = paddle == playerPaddle ? 0 : 1;
         IsFireCharged = canIgnite && (paddle == playerPaddle
             ? playerHealth.IsFireDashing : enemyHealth.IsFireDashing);
         IncreaseDamage();
         ShieldReflected?.Invoke(contactPoint, moveDirection, paddle.transform);
         if (AudioManager.instance != null) AudioManager.instance.PlaySFX(reflectSound);
+    }
+
+    private void ClearShieldContact(Collider2D paddle, float horizontalDirection)
+    {
+        // A curved shield endpoint can keep blocking the newly assigned velocity.
+        // Place the entire ball beyond its front edge while preserving hit height.
+        Bounds bounds = paddle.bounds;
+        float edge = horizontalDirection > 0f ? bounds.max.x : bounds.min.x;
+        float clearX = edge + horizontalDirection * (ballRadius + Mathf.Max(0.01f, heldBallGap));
+        Vector2 position = rb.position;
+        if ((position.x - clearX) * horizontalDirection < 0f)
+        {
+            position.x = clearX;
+            rb.position = position;
+        }
     }
 
     private void IncreaseDamage()
