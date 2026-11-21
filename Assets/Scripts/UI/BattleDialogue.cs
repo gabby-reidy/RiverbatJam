@@ -139,7 +139,7 @@ public class BattleDialogue : MonoBehaviour
     {
         continuePrompt.SetActive(true);
         yield return null;
-        while (Keyboard.current == null || !Keyboard.current.spaceKey.wasPressedThisFrame) yield return null;
+        while (Time.timeScale <= 0f || Keyboard.current == null || !Keyboard.current.spaceKey.wasPressedThisFrame) yield return null;
         if (AudioManager.instance != null) AudioManager.instance.EnableAudio();
         continuePrompt.SetActive(false);
     }

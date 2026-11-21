@@ -187,7 +187,7 @@ public class GameBall : MonoBehaviour
 
     private void Update()
     {
-        if (GameplayLocked || Time.frameCount <= InputBlockedThroughFrame) return;
+        if (Time.timeScale <= 0f || GameplayLocked || Time.frameCount <= InputBlockedThroughFrame) return;
         if (!IsBattleOver && heldPaddle == playerPaddle && IsCaught
             && Time.frameCount > caughtFrame && Keyboard.current != null
             && Keyboard.current.spaceKey.wasPressedThisFrame)
