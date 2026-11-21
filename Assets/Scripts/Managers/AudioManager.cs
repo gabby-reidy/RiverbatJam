@@ -162,6 +162,18 @@ public class AudioManager : MonoBehaviour
         return true;
     }
 
+    public void CutToMusic(AudioClip clip)
+    {
+        musicSource.Stop();
+        outgoingMusicSource.Stop();
+        musicGain = 0f;
+        outgoingMusicGain = 0f;
+        targetMusicGain = 0f;
+        requestedMusic = null;
+        ApplySourceVolumes();
+        PlayMusic(clip);
+    }
+
     public void StopMusic()
     {
         requestedMusic = null;

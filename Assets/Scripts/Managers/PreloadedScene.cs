@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[DefaultExecutionOrder(-1000)]
 public class PreloadedScene : MonoBehaviour
 {
     [SerializeField] private GameObject sceneContent;
@@ -15,10 +16,7 @@ public class PreloadedScene : MonoBehaviour
         }
 
         // Opening this scene directly in Play Mode should still work normally.
-        if (SceneLoader.Instance == null || !SceneLoader.Instance.IsPreloading)
-        {
-            SetContentActive(true);
-        }
+        SetContentActive(SceneLoader.Instance == null || !SceneLoader.Instance.IsPreloading);
     }
 
     public void SetContentActive(bool active)

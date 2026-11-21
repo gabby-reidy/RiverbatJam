@@ -32,6 +32,8 @@ public class CutsceneDialogueStep
     public CutsceneShot shotAfterDialogue = CutsceneShot.KeepCurrent;
     public Sprite backgroundOverride;
     public bool revealMemory;
+    public bool combatImpact;
+    public bool transformAfterDialogue;
     public AudioClip music;
     [Tooltip("After both timers finish, show the Space prompt and wait before advancing.")]
     public bool waitForSpace;
@@ -73,6 +75,28 @@ public class CutsceneUI : MonoBehaviour
     [SerializeField, Min(0f)] private float entryFadeDuration = 1.5f;
     [SerializeField, Min(0.01f)] private float memoryFadeDuration = 1f;
     [SerializeField] private AudioClip sceneMusic;
+    [Header("Combat Impact")]
+    [SerializeField] private Image impactFlash;
+    [SerializeField] private AudioClip impactSound;
+    [SerializeField] private AudioClip fallingMusic;
+    [SerializeField, Min(0.01f)] private float impactDuration = 0.4f;
+    [SerializeField, Min(0.01f)] private float flashDuration = 0.15f;
+    [SerializeField, Min(0f)] private float shakePixels = 18f;
+    private RectTransform shakenShot;
+    private Vector2 originalShotPosition;
+    [Header("Final Flight")]
+    [SerializeField] private GameObject[] fallingVisuals;
+    [SerializeField] private RectTransform platformPlayer;
+    [SerializeField] private Image transformationEffect;
+    [SerializeField] private Sprite[] transformationFrames;
+    [SerializeField, Min(1f)] private float transformationFPS = 18f;
+    [SerializeField, Min(0)] private int transformationSwapFrame = 4;
+    [SerializeField] private bool flyOnFinalContinue;
+    [SerializeField, Min(0.1f)] private float flightDuration = 1.5f;
+    [SerializeField, Min(0f)] private float flightHeight = 1500f;
+    [SerializeField, Min(0f)] private float flightFadeDelay = 0.25f;
+    private Vector2 platformStartPosition;
+    private bool transformationPlayed;
     private bool transitioning;
     private bool memoryRevealed;
 
@@ -108,6 +132,7 @@ public class CutsceneUI : MonoBehaviour
             if (layout.player != null) layout.originalPlayer = layout.player.sprite;
             if (layout.boss != null) layout.originalBoss = layout.boss.sprite;
         }
+        if (platformPlayer != null) platformStartPosition = platformPlayer.anchoredPosition;
         dialogueLabel.richText = false;
         configured = true;
     }
@@ -124,6 +149,15 @@ public class CutsceneUI : MonoBehaviour
         }
         transitioning = false;
         memoryRevealed = false;
+        transformationPlayed = false;
+        if (platformPlayer != null)
+        {
+            platformPlayer.anchoredPosition = platformStartPosition;
+            platformPlayer.gameObject.SetActive(false);
+            if (fallingVisuals != null) foreach (GameObject visual in fallingVisuals)
+                if (visual != null) visual.SetActive(true);
+        }
+        if (transformationEffect != null) transformationEffect.gameObject.SetActive(false);
         if (memoryImage != null) memoryImage.gameObject.SetActive(false);
         currentShot = null;
         SwitchShot(initialShot, null);
@@ -172,6 +206,11 @@ public class CutsceneUI : MonoBehaviour
                     AudioManager.instance.EnableAudio();
                     AudioManager.instance.PlaySFX(continueSound);
                 }
+                if (flyOnFinalContinue && stepIndex == dialogueSteps.Length - 1 && platformPlayer != null)
+                {
+                    StartCoroutine(FlyIntoFight());
+                    return;
+                }
                 stepIndex++;
                 BeginStep();
             }
@@ -196,12 +235,22 @@ public class CutsceneUI : MonoBehaviour
         // Both timers start at the final letter, not one after another.
         if (!shotSwitched && elapsed >= Mathf.Max(0f, step.shotSwitchDelay))
         {
-            SwitchShot(step.shotAfterDialogue, step.backgroundOverride);
             shotSwitched = true;
+            if (step.combatImpact)
+            {
+                StartCoroutine(CombatImpact(step));
+                return;
+            }
+            SwitchShot(step.shotAfterDialogue, step.backgroundOverride);
         }
         bool holdComplete = elapsed >= Mathf.Max(0f, step.dialogueHoldDuration);
         if (holdComplete) dialogueBox.SetActive(false);
         if (!holdComplete || !shotSwitched) return;
+        if (step.transformAfterDialogue && !transformationPlayed && platformPlayer != null)
+        {
+            StartCoroutine(TransformToPlatform());
+            return;
+        }
         if (step.revealMemory && !memoryRevealed && memorySprite != null)
         {
             StartCoroutine(RevealMemory());
@@ -214,6 +263,110 @@ public class CutsceneUI : MonoBehaviour
             playback = Playback.WaitingForSpace;
         }
         else { stepIndex++; BeginStep(); }
+    }
+
+    private IEnumerator TransformToPlatform()
+    {
+        transitioning = true;
+        transformationPlayed = true;
+        if (transformationEffect != null && transformationFrames != null && transformationFrames.Length > 0)
+        {
+            transformationEffect.gameObject.SetActive(true);
+            bool swapped = false;
+            for (int i = 0; i < transformationFrames.Length; i++)
+            {
+                transformationEffect.sprite = transformationFrames[i];
+                if (!swapped && i >= Mathf.Clamp(transformationSwapFrame, 0, transformationFrames.Length - 1))
+                {
+                    ShowPlatform();
+                    swapped = true;
+                }
+                yield return new WaitForSeconds(1f / Mathf.Max(1f, transformationFPS));
+            }
+            transformationEffect.gameObject.SetActive(false);
+        }
+        ShowPlatform();
+        transitioning = false;
+    }
+
+    private void ShowPlatform()
+    {
+        if (fallingVisuals != null) foreach (GameObject visual in fallingVisuals)
+            if (visual != null) visual.SetActive(false);
+        platformPlayer.gameObject.SetActive(true);
+    }
+
+    private IEnumerator FlyIntoFight()
+    {
+        transitioning = true;
+        continuePrompt.SetActive(false);
+        dialogueBox.SetActive(false);
+        Vector2 start = platformPlayer.anchoredPosition;
+        float time = 0f;
+        bool requested = false;
+        while (time < flightDuration)
+        {
+            float t = Mathf.Clamp01(time / Mathf.Max(0.1f, flightDuration));
+            platformPlayer.anchoredPosition = start + Vector2.up * flightHeight * t * t;
+            if (!requested && time >= flightFadeDelay && SceneLoader.Instance != null)
+                requested = SceneLoader.Instance.EnterFight(fightScene);
+            yield return null;
+            // The scene transition pauses gameplay, but the flight must keep moving.
+            time += Time.unscaledDeltaTime;
+        }
+        platformPlayer.anchoredPosition = start + Vector2.up * flightHeight;
+        while (!requested)
+        {
+            if (SceneLoader.Instance != null) requested = SceneLoader.Instance.EnterFight(fightScene);
+            else if (Application.CanStreamedLevelBeLoaded(fightScene))
+            {
+                SceneManager.LoadSceneAsync(fightScene);
+                requested = true;
+            }
+            yield return null;
+        }
+        playback = Playback.Leaving;
+    }
+
+    private IEnumerator CombatImpact(CutsceneDialogueStep step)
+    {
+        transitioning = true;
+        dialogueBox.SetActive(false);
+        continuePrompt.SetActive(false);
+        if (AudioManager.instance != null)
+        {
+            AudioManager.instance.CutToMusic(fallingMusic);
+            AudioManager.instance.PlaySFX(impactSound);
+        }
+        if (impactFlash != null)
+        {
+            impactFlash.gameObject.SetActive(true);
+            impactFlash.color = Color.white;
+            impactFlash.transform.SetAsLastSibling();
+        }
+        SwitchShot(step.shotAfterDialogue, step.backgroundOverride);
+        shakenShot = currentShot != null ? currentShot.root.GetComponent<RectTransform>() : null;
+        if (shakenShot != null) originalShotPosition = shakenShot.anchoredPosition;
+        float time = 0f;
+        float duration = Mathf.Max(impactDuration, flashDuration);
+        while (time < duration)
+        {
+            if (shakenShot != null)
+                shakenShot.anchoredPosition = originalShotPosition + UnityEngine.Random.insideUnitCircle * shakePixels * (1f - Mathf.Clamp01(time / impactDuration));
+            if (impactFlash != null)
+                impactFlash.color = new Color(1f, 1f, 1f, 1f - Mathf.Clamp01(time / flashDuration));
+            yield return null;
+            time += Time.deltaTime;
+        }
+        ResetImpact();
+        transitioning = false;
+    }
+
+    private void ResetImpact()
+    {
+        if (shakenShot != null) shakenShot.anchoredPosition = originalShotPosition;
+        shakenShot = null;
+        if (impactFlash != null) impactFlash.gameObject.SetActive(false);
     }
 
     private void ApplyExpressions(CutsceneDialogueStep step)
@@ -309,6 +462,7 @@ public class CutsceneUI : MonoBehaviour
     private void OnDisable()
     {
         StopAllCoroutines();
+        ResetImpact();
     }
 
     private void EnterFight()
