@@ -5,7 +5,12 @@ public class AudioManager : MonoBehaviour
     public static AudioManager instance {get; private set;}
 
     private AudioSource musicSource;
+    private AudioSource outgoingMusicSource;
     private AudioSource sfxSource;
+    [SerializeField, Min(0.01f)] private float musicFadeDuration = 2f;
+    private float musicGain;
+    private float outgoingMusicGain;
+    private float targetMusicGain;
     private SettingsManager settingsManager;
     private AudioClip requestedMusic;
     private bool audioEnabled;
@@ -27,6 +32,9 @@ public class AudioManager : MonoBehaviour
 
         musicSource = CreateAudioSource("MusicSource");
         musicSource.loop = true;
+        outgoingMusicSource = CreateAudioSource("OutgoingMusicSource");
+        outgoingMusicSource.loop = true;
+        ApplySourceVolumes();
         sfxSource = CreateAudioSource("SFXSource");
     }
 
@@ -48,6 +56,13 @@ public class AudioManager : MonoBehaviour
 
     private void Update()
     {
+        float fadeStep = Time.unscaledDeltaTime / Mathf.Max(0.01f, musicFadeDuration);
+        musicGain = Mathf.MoveTowards(musicGain, targetMusicGain, fadeStep);
+        outgoingMusicGain = Mathf.MoveTowards(outgoingMusicGain, 0f, fadeStep);
+        if (musicGain == 0f && targetMusicGain == 0f && musicSource.isPlaying) musicSource.Stop();
+        if (outgoingMusicGain == 0f && outgoingMusicSource.isPlaying) outgoingMusicSource.Stop();
+        ApplySourceVolumes();
+
         // Also handles a settings manager created later or replaced between scenes.
         if(settingsManager != SettingsManager.Instance)
         {
@@ -113,11 +128,26 @@ public class AudioManager : MonoBehaviour
 
         if(musicSource.clip == musicClip && musicSource.isPlaying)
         {
+            targetMusicGain = 1f;
             return;
         }
 
-        musicSource.clip = musicClip;
-        musicSource.Play();
+        // Reuse the fading-out source, keeping the incoming track's clock independent.
+        AudioSource previous = musicSource;
+        musicSource = outgoingMusicSource;
+        outgoingMusicSource = previous;
+        float previousGain = musicGain;
+        musicGain = outgoingMusicGain;
+        outgoingMusicGain = previousGain;
+        if (musicSource.clip != musicClip || !musicSource.isPlaying)
+        {
+            musicSource.Stop();
+            musicGain = 0f;
+            musicSource.clip = musicClip;
+            ApplySourceVolumes();
+            musicSource.Play();
+        }
+        targetMusicGain = 1f;
     }
 
     public bool TryGetMusicPlaybackTime(AudioClip clip, out float seconds)
@@ -135,12 +165,7 @@ public class AudioManager : MonoBehaviour
     public void StopMusic()
     {
         requestedMusic = null;
-
-        if(musicSource != null)
-        {
-            musicSource.Stop();
-            musicSource.clip = null;
-        }
+        targetMusicGain = 0f;
     }
 
     public void PlaySFX(AudioClip sfxClip)
@@ -176,7 +201,12 @@ public class AudioManager : MonoBehaviour
     {
         if(musicSource != null)
         {
-            musicSource.volume = masterVolume * musicVolume;
+            musicSource.volume = masterVolume * musicVolume * musicGain;
+        }
+
+        if(outgoingMusicSource != null)
+        {
+            outgoingMusicSource.volume = masterVolume * musicVolume * outgoingMusicGain;
         }
 
         if(sfxSource != null)

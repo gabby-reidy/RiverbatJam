@@ -261,6 +261,11 @@ public class CutsceneUI : MonoBehaviour
         transitioning = true;
         dialogueBox.SetActive(false);
         continuePrompt.SetActive(false);
+        if (AudioManager.instance != null)
+        {
+            if (sceneMusic != null) AudioManager.instance.PlayMusic(sceneMusic);
+            else AudioManager.instance.StopMusic();
+        }
         bool sharedFade = SceneLoader.Instance != null && SceneLoader.Instance.IsTransitioning;
         if (sharedFade)
         {
@@ -278,11 +283,6 @@ public class CutsceneUI : MonoBehaviour
                 yield return null;
             }
             fadeOverlay.gameObject.SetActive(false);
-        }
-        if (AudioManager.instance != null)
-        {
-            if (sceneMusic != null) AudioManager.instance.PlayMusic(sceneMusic);
-            else AudioManager.instance.StopMusic();
         }
         transitioning = false;
         BeginStep();

@@ -87,8 +87,6 @@ public class GameBall : MonoBehaviour
     public bool IsInPlay => !GameplayLocked && !IsBattleOver && !IsCaught && !IsFrozen && serveTimer <= 0f;
     public Vector2 TravelVelocity => moveDirection * currentSpeed;
     private float freezeTimer;
-    private float windTimer;
-    private float windAcceleration;
     private RigidbodyConstraints2D constraintsBeforeFreeze;
 
     // -1 is a neutral serve, 0 is the player, 1 is the enemy.
@@ -292,7 +290,6 @@ public class GameBall : MonoBehaviour
             return;
         }
 
-        ApplyWind();
         rb.linearVelocity = moveDirection * currentSpeed;
     }
 
@@ -419,29 +416,15 @@ public class GameBall : MonoBehaviour
 
     public event System.Action WindActivated;
 
-    public bool TryWind(float verticalImpulse, float duration)
+    public bool TryWind()
     {
-        if (!IsInPlay || verticalImpulse <= 0f || duration <= 0f || windTimer > 0f) return false;
-        float verticalSpeed = TravelVelocity.y;
-        if (Mathf.Abs(verticalSpeed) < 0.001f) return false;
+        if (!IsInPlay || Mathf.Abs(moveDirection.y) < 0.001f) return false;
 
-        // Lock the force direction at activation so it keeps blowing past zero velocity.
-        windAcceleration = -Mathf.Sign(verticalSpeed) * verticalImpulse / duration;
-        windTimer = duration;
+        // Reverse vertical travel immediately without changing the ball's speed.
+        moveDirection.y = -moveDirection.y;
+        rb.linearVelocity = moveDirection * currentSpeed;
         WindActivated?.Invoke();
         return true;
-    }
-
-    private void ApplyWind()
-    {
-        if (windTimer <= 0f) return;
-        float step = Mathf.Min(windTimer, Time.fixedDeltaTime);
-        windTimer = Mathf.Max(0f, windTimer - step);
-        Vector2 velocity = TravelVelocity;
-        velocity.y += windAcceleration * step;
-        if (velocity.sqrMagnitude < 0.000001f) return;
-        currentSpeed = ClampBallSpeed(velocity.magnitude);
-        moveDirection = velocity.normalized;
     }
 
     private void CatchBall(Collider2D paddle, float horizontalDirection)
@@ -450,8 +433,6 @@ public class GameBall : MonoBehaviour
         nextServeMultiplier = 1f;
         if (AudioManager.instance != null) AudioManager.instance.PlaySFX(catchSound);
         EndFreeze();
-        windTimer = 0f;
-        windAcceleration = 0f;
         heldPaddle = paddle;
         heldDirection = horizontalDirection;
         currentDamage = baseDamage;
@@ -600,8 +581,6 @@ public class GameBall : MonoBehaviour
     private void StopBattle()
     {
         EndFreeze();
-        windTimer = 0f;
-        windAcceleration = 0f;
         IsBattleOver = true;
         heldPaddle = null;
         launchRequested = false;
@@ -620,8 +599,6 @@ public class GameBall : MonoBehaviour
         }
 
         EndFreeze();
-        windTimer = 0f;
-        windAcceleration = 0f;
         heldPaddle = null;
         launchRequested = false;
         rb.simulated = true;

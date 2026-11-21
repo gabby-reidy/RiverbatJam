@@ -9,10 +9,10 @@ public class CreditsUI : MonoBehaviour
     private int shownFrame;
     private System.Collections.IEnumerator Start()
     {
+        if (AudioManager.instance != null && music != null) AudioManager.instance.PlayMusic(music);
         while (SceneLoader.Instance != null && SceneLoader.Instance.IsTransitioning) yield return null;
         shownFrame = Time.frameCount;
         leaving = false;
-        if (AudioManager.instance != null && music != null) AudioManager.instance.PlayMusic(music);
     }
     private void Update()
     {

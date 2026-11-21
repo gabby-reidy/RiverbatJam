@@ -53,12 +53,12 @@ public class BattleDialogue : MonoBehaviour
 
     private IEnumerator Start()
     {
-        while (SceneLoader.Instance != null && SceneLoader.Instance.IsTransitioning) yield return null;
         if (AudioManager.instance != null)
         {
             if (battleMusic != null) AudioManager.instance.PlayMusic(battleMusic);
             else AudioManager.instance.StopMusic();
         }
+        while (SceneLoader.Instance != null && SceneLoader.Instance.IsTransitioning) yield return null;
         yield return Speak(introduction);
         yield return WaitForSpace();
         ball.OpeningServeMultiplier = openingServeMultiplier;

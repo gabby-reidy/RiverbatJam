@@ -15,8 +15,6 @@ public class PowerUpManager : MonoBehaviour
     [Header("Power-up Effects")]
     [SerializeField, Min(0.01f)] private float iceDuration = 1.5f;
     [Tooltip("Total vertical velocity change spread over the Wind duration.")]
-    [SerializeField, Min(0.1f)] private float windVerticalImpulse = 4f;
-    [SerializeField, Min(0.01f)] private float windDuration = 0.75f;
     [SerializeField] private BarrierHealth[] playerBarriers;
     [SerializeField] private BarrierHealth[] enemyBarriers;
     [SerializeField, Min(0.1f)] private float spawnInterval = 3f;
@@ -134,7 +132,7 @@ public class PowerUpManager : MonoBehaviour
                 activated = RestoreBarriers(usePlayerInventory ? playerBarriers : enemyBarriers);
                 break;
             case PowerUpType.Wind:
-                activated = gameBall.TryWind(windVerticalImpulse, windDuration);
+                activated = gameBall.TryWind();
                 break;
         }
         // Failed attempts keep the held power-up.
